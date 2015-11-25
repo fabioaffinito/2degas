@@ -1,0 +1,22 @@
+  ndim 2                                                                        
+  type up 13 1. n26.up.x                                                        
+  type down 13 1. n26.down.x                                                    
+  u2 up up n26.u2                                                               
+  u2 down down n26.u2                                                           
+  u2 up down n26.u2                                                             
+  u3 up up n26.u3                                                               
+  u3 down down n26.u3                                                           
+  u3 up down n26.u3                                                             
+  rhok up                                                                       
+  rhok down                                                                     
+  pbc 9.03777677 9.03777677                                                     
+  kspace n26.k                                                                  
+  v2 up up n26.v 0. 1 1.                                                        
+  v2 down down n26.v 0. 1 1.                                                    
+  v2 up down n26.v 0. 1 1.                                                      
+  v0 -69.0949679                                                                
+  end
+ntwists 1                                                                     
+  backflow up up n26.b                                                          
+  backflow up down n26.b                                                        
+  backflow down down n26.b                                                      

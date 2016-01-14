@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jube>
+  <include-path>
+  <path tag="fermi">../../platform/fermi</path>
+  <path tag="galileo">../../platform/galileo</path>
+  <path tag="deep">../../platform/deep</path>
+  </include-path>
+
+  <benchmark name="2degas" outpath="bench_26">
+    <comment>2DEGAS  nodes 16 test</comment>
+    
+<!-- Job configuration -->
+    <!-- no. of nodes, tasks, etc -->
+    <parameterset name="systemParameter" init_with="platform.xml">
+    <parameter name="taskspernode" type="int">16</parameter>
+    <parameter name="ncores" type="int">16</parameter>
+    <!-- <parameter name="mem" type="string">120GB</parameter> -->
+    <parameter name="accountno" >cin_staff</parameter>
+    <parameter name="executable">./rept.x</parameter> 
+    <parameter name="nodes" type="int">16</parameter>
+    <parameter name="timelimit">00:30:00</parameter>
+    <parameter name="args_executable" type="string"></parameter>
+
+    <!-- disable -->
+    <parameter name="OMP_NUM_THREADS" export="true">1</parameter>
+    </parameterset>
+
+    <!-- running the job, llsubmit, runjob , etc -->
+    <parameterset name="executeset" init_with="platform.xml">
+    </parameterset>
+ 
+    <!-- files needed incl job file and input files -->
+    <fileset name="jobfiles" init_with="platform.xml">
+    <copy directory="n26">n26.b,n26.in,n26.k,n26.sy,n26.u2,n26.u3,n26.v,runid</copy>
+    <copy directory="n26">n26.$nodes.up.tar.gz,n26.$nodes.down.tar.gz</copy>
+    <copy name="rept.x">/gss/gss_work/cin_staff/aemerson/2degas/f90/rept-fermi90.x</copy>
+    <prepare>tar xf n26.$nodes.up.tar.gz; tar xf n26.$nodes.down.tar.gz</prepare>
+    </fileset>
+    
+    <!-- Substitute jobfile -->
+    <substituteset name="executesub" init_with="platform.xml">
+    <sub source="#ACCOUNT_NO#" dest="$accountno" />
+    </substituteset>
+
+
+    <!-- Operation -->
+    <step name="submit"  >
+      <use>systemParameter</use>
+      <use>executeset</use>
+      <use>jobfiles</use>
+      <use>executesub</use>
+      <!-- <do done_file="$ready_file">$submit $submit_script</do> i--> <!-- shell command -->
+      <do done_file="$ready_file">cat $submit_script</do> <!-- shell command -->
+    </step>    
+
+    <!-- extract MC loop time -->
+    <patternset name="pattern">
+       <pattern name="walltime" type="float">walltime $jube_pat_fp</pattern>
+    </patternset>   
+
+    <analyser name="analyse">
+    <use>pattern</use>
+      <analyse step="submit">
+         <file>job.out</file>
+      </analyse>
+    </analyser>
+
+
+   <!-- results -->
+   <result>
+      <use>analyse</use> <!-- use existing analyser -->
+      <table name="result" style="pretty" sort="tasks">
+      <column>nodes</column>
+      <column>tasks</column>
+      <column>walltime</column>
+      </table>
+   </result>
+
+
+  </benchmark>
+</jube>

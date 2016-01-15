@@ -8,7 +8,15 @@
 ! 2015 - Stub for OpenMP parallelization over walkers
 ! 
 ! Compile with main.f (and mpif.f mpif.h for serial version)
+! 
+! jan-2016 Start F90 version
+!  - replace common with module in ewald
+! 
+! jan14-2016
+!-  - sfix modification to allow >1000 core.
+!   - minor syntax modifications to allow compilation with IBM XLF
 !
+
       subroutine input
 ! read input
       use ewald
@@ -21,7 +29,9 @@
       character*48 word(mword),filename
       character*80 record,bf2_record
       character*1 string
-      character*3 sfix
+!      character*3 sfix
+      character(6) :: sfix
+
       data seed/0,0,0,1/
       if(mytid.eq.0)then
        write(6,*)'nproc = ',nproc
@@ -461,7 +471,7 @@
          iinc=1
 ! fononi acustici 2d
         elseif(word(2).eq.'phonon')then
-         if(ndim.ne.2)stop'fononi: ndim sbagliato'
+         if(ndim.ne.2)stop 'fononi: ndim sbagliato'
          read(word(3+1),*)inc(ninc)
          read(word(3+2),'(a)')string
          do i=1,ndim
@@ -482,14 +492,14 @@
           eps(1)=eps(2)
           eps(2)=-gg
          else
-          stop'fonone sbagliato'
+          stop 'fonone sbagliato'
          endif
          if(mytid.eq.0)write(6,*)' * * * * * ',eps
          iinc=ninc
          call phonon(eps,ng)
          iinc=1
         else
-         stop'non so fare questo inc_type'
+         stop 'non so fare questo inc_type'
         endif
 ! derivate 
        elseif(word(1).eq.'der')then
@@ -550,11 +560,12 @@
          ishll(i)=nshll
         enddo
         do i=1,nshll
-         if(i.lt.10)then
-          write(sfix,'(i1)')i
-         elseif(mytid.lt.100)then
-          write(sfix,'(i2)')i
-         endif
+!         if(i.lt.10)then
+!          write(sfix,'(i1)')i
+!         elseif(mytid.lt.100)then
+!          write(sfix,'(i2)')i
+!         endif
+         write(sfix,'(i0)') i
          filename=word(2)(1:index(word(2),' ')-1)//'.'//sfix
          call t_read(filename,j,ntable,3)
          j=min(j,ntable)
@@ -787,8 +798,8 @@
        elseif(word(1).eq.'excite')then
         read(word(2),*)nblk
         read(word(3),*)nstp
-        read(word(4),*),iex
-        read(word(5),*),itype
+        read(word(4),*)iex
+        read(word(5),*)itype
         alg='exc'
         call excite
 ! rmc simulation
@@ -1730,14 +1741,15 @@
       subroutine write_path
       use ewald
       integer it,i,j,ip,idim,iunit
-      character*3 sfix
-      if(mytid.lt.10)then
-       write(sfix,'(i1)')mytid
-      elseif(mytid.lt.100)then
-       write(sfix,'(i2)')mytid
-      elseif(mytid.lt.1000)then
-       write(sfix,'(i3)')mytid
-      endif
+      character(6):: sfix
+!      if(mytid.lt.10)then
+!       write(sfix,'(i1)')mytid
+!      elseif(mytid.lt.100)then
+!       write(sfix,'(i2)')mytid
+!      elseif(mytid.lt.1000)then
+!       write(sfix,'(i3)')mytid
+!      endif
+      write(sfix,'(i0)') mytid
       do it=1,ntypes
        i=index(x_file(it),' ')-1
        iunit=30+it-1
@@ -2351,7 +2363,7 @@
 ! get a configuration from the stack
       use ewald
       integer it,ip,idim
-      if(nstack.eq.0)stop'stack empty'
+      if(nstack.eq.0)stop 'stack empty'
 ! get next configuration
       do it=1,ntypes
        if(hbs2m(it).ne.0.d0)then
@@ -2392,7 +2404,7 @@
       integer it,ip,idim,i,n
       do i=1,n
        if(putnext.eq.getnext.and.nstack.ne.0)then
-        stop'okkio: stack full'
+        stop 'okkio: stack full'
        endif
        do it=1,ntypes
         if(hbs2m(it).ne.0.d0)then
@@ -2433,14 +2445,15 @@
       use ewald
       integer it,iunit,i,j,ip,idim
       real*8 p
-      character*3 sfix
-      if(mytid.lt.10)then
-       write(sfix,'(i1)')mytid
-      elseif(mytid.lt.100)then
-       write(sfix,'(i2)')mytid
-      elseif(mytid.lt.1000)then
-       write(sfix,'(i3)')mytid
-      endif
+      character(6):: sfix
+!      if(mytid.lt.10)then
+!       write(sfix,'(i1)')mytid
+!      elseif(mytid.lt.100)then
+!       write(sfix,'(i2)')mytid
+!      elseif(mytid.lt.1000)then
+!       write(sfix,'(i3)')mytid
+!      endif
+      write(sfix,'(i0)') mytid
 ! initialize counters
       getnext=1
       putnext=1
@@ -2483,14 +2496,15 @@
 ! get all the configurations from the stack and write coordinates on file
       use ewald
       integer it,i,ip,idim,iunit
-      character*3 sfix
-      if(mytid.lt.10)then
-       write(sfix,'(i1)')mytid
-      elseif(mytid.lt.100)then
-       write(sfix,'(i2)')mytid
-      elseif(mytid.lt.1000)then
-       write(sfix,'(i3)')mytid
-      endif
+      character(6):: sfix
+!      if(mytid.lt.10)then
+!       write(sfix,'(i1)')mytid
+!      elseif(mytid.lt.100)then
+!       write(sfix,'(i2)')mytid
+!      elseif(mytid.lt.1000)then
+!       write(sfix,'(i3)')mytid
+!      endif
+      write(sfix,'(i0)') mytid
       do it=1,ntypes
        i=index(x_file(it),' ')-1
        iunit=30+it-1
@@ -3277,7 +3291,7 @@
        enddo
 ! matrix inverse and determinant
        call dgefa(orb,morbit,np(jt),ipvt,info)
-       if(info.ne.0)stop'slater_bckflw_orbitals: info.ne.0'
+       if(info.ne.0)stop 'slater_bckflw_orbitals: info.ne.0'
        call dgedi(orb,morbit,np(jt),ipvt,det,wrk,11)
 ! -log tf
        ltf=ltf+log(abs(det(1)))+det(2)*log(10.d0)
@@ -3442,7 +3456,7 @@
          enddo
 ! matrix inverse and determinant
          call dgefa(orb,morbit,np(jt),ipvt,info)
-         if(info.ne.0)stop'slater_bckflw_orbitals: info.ne.0'
+         if(info.ne.0)stop 'slater_bckflw_orbitals: info.ne.0'
          call dgedi(orb,morbit,np(jt),ipvt,det,wrk,11)
 ! -log tf
          p_new(jltf)=p_new(jltf)-log(abs(det(1)))-det(2)*log(10.d0)
@@ -3550,7 +3564,7 @@
          enddo
 ! matrix inverse and determinant
          call zgefa(zorb,morbit,np(jt),ipvt,info)
-         if(info.ne.0)stop'slater_bckflw_orbitals: info.ne.0'
+         if(info.ne.0)stop 'slater_bckflw_orbitals: info.ne.0'
          call zgedi(zorb,morbit,np(jt),ipvt,zdet,zwrk,11)
 ! -log tf
          p_new(jltf)=p_new(jltf)-dreal(log(zdet(1))+zdet(2)*log(10.d0))
@@ -4391,7 +4405,8 @@
       use mpi
        implicit none
       integer what,iblk,i,j,idim,ip,it,iunit,seed(8),seed_tot(8*mproc)
-      character*3 who,sfix
+      character(6)::sfix
+      character(3)::who
       save
       if(mytid.eq.0) &
       open(8,file=runid(1:index(runid,' ')-1)//'.res',status='unknown')
@@ -4412,13 +4427,14 @@
         enddo
        endif
 ! configurazioni
-       if(mytid.lt.10)then
-        write(sfix,'(i1)')mytid
-       elseif(mytid.lt.100)then
-        write(sfix,'(i2)')mytid
-       elseif(mytid.lt.1000)then
-        write(sfix,'(i3)')mytid
-       endif
+!       if(mytid.lt.10)then
+!        write(sfix,'(i1)')mytid
+!       elseif(mytid.lt.100)then
+!        write(sfix,'(i2)')mytid
+!       elseif(mytid.lt.1000)then
+!        write(sfix,'(i3)')mytid
+!       endif
+       write(sfix,'(i0)') mytid
        do it=1,ntypes
         i=index(x_file(it),' ')-1
         iunit=30+it-1
@@ -4502,7 +4518,7 @@
       elseif(ndim.eq.3)then
        a=4.d0*pi/3.d0
       else
-       stop'normalizza_gofr: ndim'
+       stop 'normalizza_gofr: ndim'
       endif
       dr=drt*ngrid_gofr_ratio
       a=a*eli(1)
@@ -4920,7 +4936,7 @@
        if(nzero.le.0)go to 1
 ! trovato un vettore
        ng=ng+1
-       if(ng.gt.mnk)stop'krlv: nrlv.gt.mnk'
+       if(ng.gt.mnk)stop 'krlv: nrlv.gt.mnk'
 ! ordinamento
        do idim=1,ndim
         gvect(idim,ng)=g(idim)
@@ -5144,7 +5160,7 @@
       enddo
       i=2
       do j=2,l
-       if(i.gt.80)stop'max record length reached'
+       if(i.gt.80)stop 'max record length reached'
        if(string(j:j).ne.' ')then
         record(i:i)=string(j:j)
         i=i+1
@@ -5530,7 +5546,7 @@
              ,i2,ishift,jpw,jmf,iffind,jp1,im1,jj,jzero,j2,j2p1
       real*8 a(mm,mm),d(mm),e(mm),f(mm),aux_cmf(0:mm,0:mm),tpiba &
             ,small,sq2i,e_0,v2,epw,etot,x,zero,gx,vx,gxj,fx,ddf,gj2,b,q
-      if(ndim.ne.2)stop'matcfs: ndim.ne.2'
+      if(ndim.ne.2)stop 'matcfs: ndim.ne.2'
       tpiba=2.d0*pi*eli(1)
       call r_set((mm+1)*(mm+1),aux_cmf(0,0),0.d0)
       call i_set((mm+1)*(mm+1),iaux_cmf(0,0),0)
@@ -5657,7 +5673,7 @@
 2        continue 
       end do
 ! stop if shell is unfilled
-      if(e(np(it)+1)-e(np(it)).lt.1.d-10)stop'shell not filled'
+      if(e(np(it)+1)-e(np(it)).lt.1.d-10)stop 'shell not filled'
  
 ! number of needed mathieu functions and plane waves
       iauxmf(0,1)=0
@@ -5746,10 +5762,10 @@
 ! write
          q=2.d0*veff(it,iinc)/hbs2m(it)/qveff(it,iinc)**2
          write (6,'(''m0      '',i10,/ &
-                    ''m       '',i10,/ &
-                    ''q       '',f14.3,/ &
-                    ''veff    '',f14.3,/ &
-                    ''ng      '',i10)')m0,m,q,veff(it,iinc),ng
+            &        ''m       '',i10,/ &
+            &        ''q       '',f14.3,/ &
+            &        ''veff    '',f14.3,/ &
+            &        ''ng      '',i10)')m0,m,q,veff(it,iinc),ng
          write (6,'(/''configuration'')')
          do i=1,np(it)
             write (6,'(i10,i5)')iauxmf(i,1),iauxmf(i,2)
@@ -6200,7 +6216,7 @@
       enddo
       lcao(it)=lcao(it)+1
       if(word(2).ne.'c')then
-       stop'lcao_setup: second word .ne. c'
+       stop 'lcao_setup: second word .ne. c'
       endif
       iw=2
     1 do i=1,mstypes
@@ -6302,7 +6318,7 @@
 !   y   |   1  x  y  z
       integer ndim,l
       real*8 y,dy(ndim),ddy,rvec(ndim)
-      if(ndim.ne.3)stop'ylm: ndim.ne.3'
+      if(ndim.ne.3)stop 'ylm: ndim.ne.3'
       if(l.eq.1)then
        y=1.d0
        dy(1)=0.d0
@@ -6328,7 +6344,7 @@
        dy(3)=1.d0
        ddy=0.d0
       else
-       stop'ylm: l.gt.2'
+       stop 'ylm: l.gt.2'
       endif
       return
       end
@@ -6581,7 +6597,7 @@
       elseif(r.lt.100.d0)then
        f=1.d0-p12-p22*r**(0.5d0)-p32*r-p42*r**(1.5d0)-p52*r**2
       else
-       stop'sapt: r troppo grande'
+       stop 'sapt: r troppo grande'
       endif
       v=a*exp(-alpha*r+beta*r**2)-e*( &
         (1.d0-sapt_sum(delta*r,6)*exp(-delta*r))*c6*f/r**6 &
@@ -6623,7 +6639,7 @@
             ,sites(mdim,msites),aux,rannyu
       if(verbose.ne.0)write(6,*)'=========>> xtal_sites <<=========='
 ! no more than 3d
-      if(ndim.gt.3)stop'ndim.gt.3: stop...'
+      if(ndim.gt.3)stop 'ndim.gt.3: stop...'
 ! consistency between i_cub and np
       n_sites=i_cub(1)
       do i=2,ndim
@@ -6631,7 +6647,7 @@
       enddo
       n_sites=n_sites*nbasis
       if(verbose.ne.0)write(6,*)'n_sites = ',n_sites,'  np = ',np
-      if(n_sites.lt.np)stop'n_sites.lt.np: stop...'
+      if(n_sites.lt.np)stop 'n_sites.lt.np: stop...'
 ! volume della cella primitiva
       vol0=abrav(1)
       do i=2,ndim
@@ -9822,19 +9838,20 @@
       subroutine x_read
       use ewald
       integer it,iunit,i,j,ip,idim,icall
-      character*3 sfix
+      character(6) ::sfix
       data icall/0/
       save icall
       if(icall.eq.0)then
        icall=1
 ! open files
-       if(mytid.lt.10)then
-        write(sfix,'(i1)')mytid
-       elseif(mytid.lt.100)then
-        write(sfix,'(i2)')mytid
-       elseif(mytid.lt.1000)then
-        write(sfix,'(i3)')mytid
-       endif
+!       if(mytid.lt.10)then
+!        write(sfix,'(i1)')mytid
+!       elseif(mytid.lt.100)then
+!        write(sfix,'(i2)')mytid
+!       elseif(mytid.lt.1000)then
+!        write(sfix,'(i3)')mytid
+!       endif
+       write(sfix,'(i0)') mytid
        do it=1,ntypes
         iunit=69+it-1
         i=index(x_file(it),' ')-1
@@ -10212,7 +10229,7 @@
          enddo
         enddo
         call zgefa(zorb,morbit,npa(jt,iex),ipvt,info)
-        if(info.ne.0)stop'slater_bckflw_orbitals (1): info.ne.0'
+        if(info.ne.0)stop 'slater_bckflw_orbitals (1): info.ne.0'
         call zgedi(zorb,morbit,npa(jt,iex),ipvt,zdet,zwrk,11)
         if(jt.eq.itype)call switch(ndim,gvec(1,jkho),gvec(1,jkpa))
 ! eccitazioni anti-parallele
@@ -10246,7 +10263,7 @@
          enddo
         enddo
         call zgefa(zorb,morbit,npa(jt,iex),ipvt,info)
-        if(info.ne.0)stop'slater_bckflw_orbitals (2): info.ne.0'
+        if(info.ne.0)stop 'slater_bckflw_orbitals (2): info.ne.0'
         call zgedi(zorb,morbit,npa(jt,iex),ipvt,zdet,zwrk,11)
         if(itype.eq.1)then
         if(jt.eq.1)call switch(ndim,gvec(1,jkho),gvec(1,npa(jt,iex)+1))
@@ -10258,3 +10275,6 @@
        endif
       return
       end
+
+
+      

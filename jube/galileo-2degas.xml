@@ -33,7 +33,8 @@
  
     <!-- files needed incl job file and input files -->
     <fileset name="jobfiles" init_with="platform.xml">
-    <copy>n26/*</copy>
+    <copy directory="n26">n26.b,n26.in,n26.k,n26.sy,n26.u2,n26.u3,n26.v,runid</copy>
+    <copy directory="n26">n26.$nodes.up.tar.gz,n26.$nodes.down.tar.gz</copy>
     <copy>/galileo/home/userinternal/aemerson/gss/2degas/f90/rept90.x</copy>
     <prepare>tar xf n26.$nodes.up.tar.gz; tar xf n26.$nodes.down.tar.gz</prepare>
     </fileset>

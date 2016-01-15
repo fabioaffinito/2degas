@@ -4,7 +4,7 @@
 # Add inputs and outputs from these tool invocations to the build variables 
 
 #F90 parallel version
-F90_EXE=rept90.x
+F90_EXE=rept-fermi90.x
 F90=mpixlf90_r
 F90_SRC = ewald.f90 main.f90 reptation.f90
 F90FLAGS= -O2 -g

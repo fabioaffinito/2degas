@@ -26,6 +26,6 @@ $(F90_EXE):$(F90_OBJS)
 #
 
 clean:
-	-rm $(F90_EXE) *.o
+	-rm $(F90_EXE) *.o *.mod
 
 

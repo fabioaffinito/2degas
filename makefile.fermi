@@ -1,0 +1,32 @@
+# makefile
+
+
+# Add inputs and outputs from these tool invocations to the build variables 
+
+#F77 parallel version
+F77_EXE=rept-fermi.x
+F77=mpixlf77_r
+F77_SRC =  main.f reptation.f
+INCS=ewald.h
+F77FLAGS= -O2 -g
+F77_OBJS =  main.o reptation.o 
+
+all : $(F77_EXE) 
+ 
+
+#
+#  F77
+#
+$(F77_EXE):$(F77_OBJS)
+	$(F77) $(LDFLAGS) -o $@ $(F77_OBJS)
+
+%.o:%.f
+	$(F77) $(F77FLAGS) -I$(INCS) -c $< 
+
+#
+#
+
+clean:
+	-rm $(F77_EXE) *.o 
+
+

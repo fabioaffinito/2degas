@@ -6029,6 +6029,7 @@
       return
       end
  
+#ifdef BLAS_INTERNAL
       FUNCTION DDOT(N,SX,INCX,SY,INCY)
       REAL*8 SX(n*incx+1),SY(n*incy+1),DDOT
       DDOT = 0.0d0
@@ -6203,7 +6204,8 @@
    50 CONTINUE
       RETURN
       END
-
+#endif
+! End of first lapack block
 !ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
 
       subroutine lcao_setup(word,ntable,iunit)
@@ -9080,6 +9082,8 @@
    30 continue
       return
       end
+
+#ifdef BLAS_INTERNAL
       subroutine zaxpy(n,za,zx,incx,zy,incy)
 !
 !     constant times a vector plus a vector.
@@ -9151,6 +9155,10 @@
       dcabs1 = dabs(t(1)) + dabs(t(2))
       return
       end
+
+#endif
+! end of second LAPACK block
+
       subroutine zgefa(a,lda,n,ipvt,info)
       integer lda,n,ipvt(1),info
       complex*16 a(lda,1)

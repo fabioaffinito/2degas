@@ -6,10 +6,10 @@
 #F90 parallel version
 F90_EXE=rept90-mkl.x
 F90=mpif90
-F90_SRC = ewald.f90 main.f90 reptation.f90
+F90_SRC = tools.f90 ewald.f90 main.f90 reptation.f90
 #F90FLAGS= -O2 -g -fpp -DBLAS_INTERNAL
 F90FLAGS= -O2 -g -fpp -mkl
-F90_OBJS = ewald.o main.o reptation.o 
+F90_OBJS = tools.o ewald.o main.o reptation.o 
 LDFLAGS=-mkl
 
 all : $(F90_EXE) 

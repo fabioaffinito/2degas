@@ -3179,6 +3179,7 @@
 
       subroutine ltf_bf2(ltf,s,kp)
       use ewald
+      use tools
       integer it,jt,idim,jdim,kdim,ip,jp,kp,ijcount,jf,kf,lf &
              ,jk,j1,j2,ipvt(morbit),info,i,j,ind
       real*8 qx(mdim,mnp,morbit) &
@@ -3290,6 +3291,7 @@
         enddo
        enddo
 ! matrix inverse and determinant
+#ifdef BLAS_INTERNAL
        call dgefa(orb,morbit,np(jt),ipvt,info)
        if(info.ne.0)stop 'slater_bckflw_orbitals: info.ne.0'
        call dgedi(orb,morbit,np(jt),ipvt,det,wrk,11)
@@ -3297,6 +3299,14 @@
        ltf=ltf+log(abs(det(1)))+det(2)*log(10.d0)
 ! sign
        s=s*sign(1.d0,det(1))
+
+! otherwise use lapack,mkl, etc..
+#else
+      call dget_inverse(orb,morbit,np(jt),dtmnt,info)
+      if (info .ne. 0) stop 'Error dget_inverse: info <> 0'
+      ltf=ltf +log(abs(dtmnt))
+      s=s*sign(1.d0,dtmnt)
+#endif
       enddo
       return
       end
@@ -9157,7 +9167,7 @@
       end
 
 #endif
-! end of second LAPACK block
+!  end of second LAPACK block
 
       subroutine zgefa(a,lda,n,ipvt,info)
       integer lda,n,ipvt(1),info

@@ -3314,6 +3314,7 @@
  
       subroutine slater_bckflw_orbitals
 ! symmetric (i.e. if xi=ri+etaij*rij then xj=rj+etaji*rji) backflow
+      use tools
       use ewald
       integer ib(mtypes),it,jt,idim,jdim,kdim,ip,jp,kp,ijcount,jf,kf,lf &
              ,jk,j1,j2,ipvt(morbit),info,i,jkho,jkpa
@@ -3464,6 +3465,7 @@
            enddo
           enddo
          enddo
+#ifdef BLAS_INTERNAL
 ! matrix inverse and determinant
          call dgefa(orb,morbit,np(jt),ipvt,info)
          if(info.ne.0)stop 'slater_bckflw_orbitals: info.ne.0'
@@ -3472,6 +3474,14 @@
          p_new(jltf)=p_new(jltf)-log(abs(det(1)))-det(2)*log(10.d0)
 ! sign
          s_new=s_new*sign(1.d0,det(1))
+#else
+!  LAPACK, MKL etc
+         call dget_inverse(orb,morbit,np(jt),dtmnt,info)
+         if (info .ne. 0) stop 'Error dget_inverse: info <> 0'
+         p_new(jltf)=p_new(jltf)-log(abs(dtmnt))
+         s_new=s_new*sign(1.d0,dtmnt)
+#endif
+
 ! intermediate matrix v
          do jf=1,np(jt)
           do lf=1,np(jt)
@@ -3746,12 +3756,14 @@
       end
 
       subroutine slater(it)
+      use tools
       use ewald
       integer it,ipvt(morbit),info,i,j,idim
       real*8 det(2),wrk(33*morbit),aux
       common /scratch/wrk
 ! matrix inverse and determinant
       call dcheck(np(it),morbit,orb,1)
+#ifdef BLAS_INTERNAL
       call dgefa(orb,morbit,np(it),ipvt,info)
       if(info.ne.0)then
        write(6,*)'slater: info.ne.0 '
@@ -3766,6 +3778,20 @@
 !     print*,aux,p_new(jltf)
 ! sign
       s_new=s_new*sign(1.d0,det(1))
+#else
+!  mkl or lapack version 
+! check this because info can be 0  from 2 places in dget_inverse
+      call dget_inverse(orb,morbit,np(it),dtmnt,info)
+      if(info.ne.0)then
+         write(6,*)'slater: info.ne.0 '
+         p_new(jltf)=1.d50
+         return
+      endif
+      call dcheck(np(it),morbit,orb,2)
+      p_new(jltf)=p_new(jltf)-log(abs(dtmnt))
+      s_new=s_new*sign(1.d0,dtmnt) 
+#endif
+
 ! grad and laplac of log det (use that minor/determinant = inverse transposed)
       wrk(2)=0.d0
       do i=1,np(it)

@@ -7,9 +7,18 @@
 F90_EXE=rept90-mic.x
 F90=mpifc
 F90_SRC = ewald.f90 main.f90 reptation.f90
-F90FLAGS= -O2 -g -mmic
-F90_OBJS = ewald.o main.o reptation.o 
-LDFLAGS=-mmic
+F90FLAGS= -O3 -g -mmic
+F90_OBJS =  ewald.o main.o reptation.o 
+
+BLAS_INTERNAL=1
+ifdef BLAS_INTERNAL
+   FPP= -fpp -DBLAS_INTERNAL
+   LDFLAGS=
+else 
+   FPP=-fpp
+   F90_OBJS:= tools.o $(F90_OBJS)
+   LDFLAGS=-mkl
+endif
 
 all : $(F90_EXE) 
  
@@ -18,10 +27,10 @@ all : $(F90_EXE)
 #  F90
 #
 $(F90_EXE):$(F90_OBJS)
-	$(F90) $(LDFLAGS) -o $@ $(F90_OBJS)
+	$(F90) $(F90FLAGS) -o $@ $(F90_OBJS) $(LDFLAGS)
 
 %.o:%.f90
-	$(F90) $(F90FLAGS) -c $< 
+	$(F90) $(FPP) $(F90FLAGS) -c $< 
 
 #
 #

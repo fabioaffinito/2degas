@@ -4,30 +4,42 @@
 # Add inputs and outputs from these tool invocations to the build variables 
 
 #F90 parallel version
-F90_EXE=rept90-mkl.x
 F90=mpif90
 F90_SRC = tools.f90 ewald.f90 main.f90 reptation.f90
-#F90FLAGS= -O2 -g -fpp -DBLAS_INTERNAL
-F90FLAGS= -O2 -g -fpp -mkl
-F90_OBJS = tools.o ewald.o main.o reptation.o 
-LDFLAGS=-mkl
+F90FLAGS= -O2 -g 
+F90_OBJS = ewald.o main.o reptation.o 
 
-all : $(F90_EXE) 
+FPP=-fpp -DDEBUG
+#FPP=-fpp 
+BLAS_INTERNAL=1
+ifdef BLAS_INTERNAL
+   EXE=rept90.x
+   FPP:= $(FPP) -DBLAS_INTERNAL
+   LDFLAGS=
+else
+   EXE=rept90-mkl.x
+   FPP:= $(FPP)
+   F90_OBJS:= tools.o $(F90_OBJS)
+   LDFLAGS=-mkl
+endif
+
+
+all : $(EXE) 
  
 
 #
 #  F90
 #
-$(F90_EXE):$(F90_OBJS)
-	$(F90) $(LDFLAGS) -o $@ $(F90_OBJS)
+$(EXE):$(F90_OBJS)
+	$(F90) $(F90FLAGS) -o $@ $(F90_OBJS) $(LDFLAGS)
 
 %.o:%.f90
-	$(F90) $(F90FLAGS) -c $< 
+	$(F90) $(FPP) $(F90FLAGS) -c $< 
 
 #
 #
 
 clean:
-	-rm $(F90_EXE) *.o *.mod
+	-rm $(EXE) *.o *.mod
 
 

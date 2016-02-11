@@ -3583,11 +3583,23 @@
           enddo
          enddo
 ! matrix inverse and determinant
+#ifdef BLAS_INTERNAL
          call zgefa(zorb,morbit,np(jt),ipvt,info)
          if(info.ne.0)stop 'slater_bckflw_orbitals: info.ne.0'
          call zgedi(zorb,morbit,np(jt),ipvt,zdet,zwrk,11)
 ! -log tf
          p_new(jltf)=p_new(jltf)-dreal(log(zdet(1))+zdet(2)*log(10.d0))
+         zdett=dreal( log(zdet(1)) + zdet(2)*log(10.d0))
+#else
+! lapack/mkl versions
+! This needs to be checked, esp the dreal -> dble
+         call zget_inverse(zorb,morbit,np(it),zdtmnt,info)
+         if(info.ne.0)stop 'slater_bckflw_orbitals: info.ne.0'
+         p_new(jltf)=p_new(jltf)-dreal(log(zdtmnt))
+         zdett=dreal(log(zdtmnt))
+
+#endif
+
 ! intermediate matrix v (F sul Kwon)
          do jf=1,np(jt)
           do lf=1,np(jt)
@@ -3875,6 +3887,7 @@
       end
 
       subroutine z_slater(it)
+      use tools
       use ewald
       integer it,ipvt(morbit),info,i,j,idim
       complex*16 wrk(33*morbit),det(2),aux
@@ -3882,6 +3895,8 @@
 !     common /scratch/wrk
 ! matrix inverse and determinant
 !     call zcheck(np(it),morbit,zorb,1)
+
+#ifdef BLAS_INTERNAL
       call zgefa(zorb,morbit,np(it),ipvt,info)
       if(info.ne.0)then
        write(6,*)'z_slater: info.ne.0 '
@@ -3896,6 +3911,18 @@
 ! sign
 !      s_new=s_new*sign(1.d0,det(1))
 ! grad and laplac of log det (use that minor/determinant = inverse transposed)
+#else
+!  LAPACK/MKL version
+      call zget_inverse(zorb,morbit,np(it),zdtmnt,info)
+      if(info.ne.0)then
+          write(6,*)'z_slater: info.ne.0 '
+          p_new(jltf)=1.d50
+          return
+      endif
+      aux=log(zdtmnt)
+      p_new(jltf)=p_new(jltf)-dreal(aux)
+#endif
+
       dum=0.d0
       grad2_ph=0.d0
       do i=1,np(it)
@@ -9926,6 +9953,7 @@
 
       subroutine slater_excitations(w)
 ! symmetric (i.e. if xi=ri+etaij*rij then xj=rj+etaji*rji) backflow
+      use tools
       use ewald
       integer ib(mtypes),it,jt,idim,jdim,kdim,ip,jp,kp,ijcount,jf,kf,lf &
              ,jk,j1,j2,ipvt(morbit),info,i
@@ -10018,8 +10046,16 @@
       aux=0.d0
       do jt=1,ntypes
        call paho_orbitals(jt,zdet)
+! if using LPACK then we get directly the determinant
+! this will be in zdet(1)
 ! -log tf
+#ifdef BLAS_INTERNAL
        p_new(jltf)=p_new(jltf)-dreal(log(zdet(1))+zdet(2)*log(10.d0))
+#else
+!  check the dreal -> dble conversin
+       zdtmnt=zdet(1)
+       p_new(jltf)=p_new(jltf)-dreal(log(zdtmnt))
+#endif
 ! save zorb dzorb ddzorb
        do ip=1,npa(jt,iex)
         do jp=1,npa(jt,iex)
@@ -10225,6 +10261,7 @@
       end
 
       subroutine paho_orbitals(jt,zdet)
+      use tools
       use ewald
       integer ib(mtypes),it,jt,idim,jdim,kdim,ip,jp,kp,ijcount,jf,kf,lf &
              ,jk,j1,j2,ipvt(morbit),info,i
@@ -10272,19 +10309,28 @@
           enddo
          enddo
         enddo
+
+#ifdef BLAS_INTERNAL
         call zgefa(zorb,morbit,npa(jt,iex),ipvt,info)
         if(info.ne.0)stop 'slater_bckflw_orbitals (1): info.ne.0'
         call zgedi(zorb,morbit,npa(jt,iex),ipvt,zdet,zwrk,11)
-        if(jt.eq.itype)call switch(ndim,gvec(1,jkho),gvec(1,jkpa))
+#else
+! LAPACK/mkl
+        call zget_inverse(zorb,morbit,npa(jt,iex),zdtmnt,info)
+        if(info.ne.0)stop 'slater_bckflw_orbitals (1): info.ne.0'
+        zdet(1)=zdtmnt
+#endif
+
+       if(jt.eq.itype)call switch(ndim,gvec(1,jkho),gvec(1,jkpa))
 ! eccitazioni anti-parallele
        elseif(iex.eq.2)then
 ! mette pa o ho al posto giusto
         if(itype.eq.1)then
-        if(jt.eq.1)call switch(ndim,gvec(1,jkho),gvec(1,npa(jt,iex)+1))
-        if(jt.eq.2)call switch(ndim,gvec(1,jkpa),gvec(1,npa(jt,iex)))
+           if(jt.eq.1)call switch(ndim,gvec(1,jkho),gvec(1,npa(jt,iex)+1))
+           if(jt.eq.2)call switch(ndim,gvec(1,jkpa),gvec(1,npa(jt,iex)))
         else 
-        if(jt.eq.2)call switch(ndim,gvec(1,jkho),gvec(1,npa(jt,iex)+1))
-        if(jt.eq.1)call switch(ndim,gvec(1,jkpa),gvec(1,npa(jt,iex)))
+           if(jt.eq.2)call switch(ndim,gvec(1,jkho),gvec(1,npa(jt,iex)+1))
+           if(jt.eq.1)call switch(ndim,gvec(1,jkpa),gvec(1,npa(jt,iex)))
         endif 
 ! riscrive la matrice          
         do jk=1,npa(jt,iex)        
@@ -10306,9 +10352,20 @@
           enddo
          enddo
         enddo
+
+
+#ifdef BLAS_INTERNAL
         call zgefa(zorb,morbit,npa(jt,iex),ipvt,info)
         if(info.ne.0)stop 'slater_bckflw_orbitals (2): info.ne.0'
         call zgedi(zorb,morbit,npa(jt,iex),ipvt,zdet,zwrk,11)
+#else
+! LAPACK/mkl
+        call zget_inverse(zorb,morbit,npa(jt,iex),zdtmnt,info)
+        if(info.ne.0)stop 'slater_bckflw_orbitals (2): info.ne.0'
+! this is not a good soln, but avoids changing the call to paho_oribitals
+        zdet(1)=zdtmnt
+#endif
+
         if(itype.eq.1)then
         if(jt.eq.1)call switch(ndim,gvec(1,jkho),gvec(1,npa(jt,iex)+1))
         if(jt.eq.2)call switch(ndim,gvec(1,jkpa),gvec(1,npa(jt,iex)))
@@ -10317,8 +10374,9 @@
         if(jt.eq.1)call switch(ndim,gvec(1,jkpa),gvec(1,npa(jt,iex)))
         endif 
        endif
-      return
-      end
+
+     return
+     end
 
 
       

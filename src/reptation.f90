@@ -5793,7 +5793,7 @@
       dpw(0)=0.d0
       ddpw(0)=0.d0
 
-!$ sines and cosines for mathieu functions
+! sines and cosines for mathieu functions
 !     gx=( x(1)-dble(ispin-1)*pi/gvctr )*tpiba ! spin
       gx=x_new(1,ip)*tpiba                            ! charge
       pw(1)=sq2i

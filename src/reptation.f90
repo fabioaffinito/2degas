@@ -979,49 +979,53 @@
       end
 
       subroutine vmc
-      use ewald
-      integer iblk,istp,nitc0,ncmass0,nmstar0
-      real*8 p,uno,rannyu
-      uno=1.d0
-      if(ncmass.ne.0)then
-       ncmass0=ncmass
-       ncmass=0      
-      endif
-      if(nmstar.ne.0)then
-       nmstar0=nmstar
-       nmstar=0      
-      endif
-      if(nitc.ne.0)then
-       nitc0=nitc
-       nitc=0      
-      endif
-      call read_conf
-      call getconf
-      do iblk=iblk0,nblk                            ! loop on blocks
-       call averages(1,iblk,alg,uno)          ! reset averages
-       do istp=1,nstp                           ! loop on MC steps
-        call move(p)                            ! move particles; compute props
-        call metropolis_test(p)                 ! accept/reject
-        if(mod(istp,nskip).eq.0)then
-         call putconf(1)
+        use ewald
+        integer iblk,istp,nitc0,ncmass0,nmstar0
+        real*8 p,uno,rannyu
+        uno=1.d0
+        if(ncmass.ne.0)then
+           ncmass0=ncmass
+           ncmass=0      
         endif
-        if(der_nskip.ne.0.and.mod(istp,der_nskip).eq.1) &
-        call compute_vmcder
-        call averages(2,iblk,alg,uno)         ! update averages
-       enddo                                    ! step finished
-       call averages(3,iblk,alg,uno)          ! write averages
-!      if(mytid.eq.0)call flush(6)
-      enddo
-      if(nstack.eq.0)then
-       call putconf(1)
-      endif
-      call write_conf
-      if(nitc.ne.0)nitc=nitc0
-      if(ncmass.ne.0)ncmass=ncmass0
-      if(nmstar.ne.0)nmstar=nmstar0
-      if(ntheta.ne.0.and.res_string.ne.'.')iblk0=1 
-      return
-      end
+        if(nmstar.ne.0)then
+           nmstar0=nmstar
+           nmstar=0      
+        endif
+        if(nitc.ne.0)then
+           nitc0=nitc
+           nitc=0      
+        endif
+        call read_conf
+        call getconf
+
+! MAIN LOOP 
+        do iblk=iblk0,nblk                            ! loop on blocks
+           call averages(1,iblk,alg,uno)          ! reset averages
+           do istp=1,nstp                           ! loop on MC steps
+              call move(p)                            ! move particles; compute props
+              call metropolis_test(p)                 ! accept/reject
+              if(mod(istp,nskip).eq.0)then
+                 call putconf(1)
+              endif
+              if(der_nskip.ne.0.and.mod(istp,der_nskip).eq.1) &
+                   call compute_vmcder
+              call averages(2,iblk,alg,uno)         ! update averages
+           enddo                                    ! step finished
+           call averages(3,iblk,alg,uno)          ! write averages
+           !      if(mytid.eq.0)call flush(6)
+        enddo
+! END MAIN LOOP
+
+        if(nstack.eq.0)then
+           call putconf(1)
+        endif
+        call write_conf
+        if(nitc.ne.0)nitc=nitc0
+        if(ncmass.ne.0)ncmass=ncmass0
+        if(nmstar.ne.0)nmstar=nmstar0
+        if(ntheta.ne.0.and.res_string.ne.'.')iblk0=1 
+        return
+      end subroutine vmc
 
       subroutine compute_vmcder
       use ewald

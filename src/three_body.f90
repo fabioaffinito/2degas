@@ -11,6 +11,7 @@
 ! For n26 we have these values
 ! ntypes=           2
 ! mnp=         166
+! ndim=2
 ! mdim=           2
 
 
@@ -21,6 +22,10 @@ subroutine three_body
   real*8 t,dt,ddt
   real*8 g(mdim,mnp),dg(mdim,mdim,mnp,mnp),ddg(mdim,mnp,mnp)
   common /scratch/g,dg,ddg
+
+!  For timing
+  integer :: t1,t2,t3,t4,t5,count_rate
+
   ! check if some work has to be done
   i=0
   do it=1,ntypes
@@ -32,12 +37,18 @@ subroutine three_body
   if(i.eq.0)return
   ! initialize
 
-#ifdef PRINTVARS
+#ifdef INFO
    write(*,*) 'ntypes=',ntypes
    write(*,*) 'mnp=',mnp
    write(*,*) 'mdim=',mdim
+   write(*,*) 'ndim=',ndim
 #endif
 
+
+! OPT: The following  2 loops do not vectorize since they can be fused and optimised
+!
+
+!   call system_clock(t1,count_rate)
 
 !$OMP PARALLEL shared(g,ddg,dg) 
 !$OMP do  collapse(2)
@@ -48,6 +59,16 @@ subroutine three_body
   enddo
 !$OMP END DO NOWAIT
 
+!    call system_clock(t2)
+
+!  dt=real(t2-t1)/real(count_rate)
+!  write(*,"(A,f10.6)") 'Time: loop1=',dt
+
+!OPT: this is the most important loop
+!Experiment with: thread_private, SIMD, collapse, !DIR NOVECTOR, different
+!schedule schemes
+!
+ 
 !$OMP do 
   do ip=1,mnp ! ipfrst(1),iplst(ntypes)
      do jp=1,mnp ! ipfrst(1),iplst(ntypes)
@@ -63,6 +84,9 @@ subroutine three_body
 !$OMP END PARALLEL
 
 
+!  call system_clock(t3)
+!  write(*,"(a,f10.6)") 'Time: loop2=',real(t3-t2)/real(count_rate)
+  
   ! triplets
   ijcount=0
   do it=1,ntypes
@@ -89,6 +113,7 @@ subroutine three_body
            enddo
         enddo
      endif
+
      do jt=it+1,ntypes
         i=iu3table(it,jt,iinc)
         if(i.ne.0)then
@@ -115,8 +140,19 @@ subroutine three_body
            enddo
         endif
      enddo
+
   enddo
+
+!  call system_clock(t4) 
+!  write(*,"(a,f10.6)") 'Time: loop3=',real(t4-t3)/real(count_rate)
+
+
+!OPT: worth optimising dotg
   call dotg(g,dg,ddg)
+
+!  call system_clock(t5)
+!  write(*,"(a,f10.6)") 'Time: dotg=',real(t5-t4)/real(count_rate)
+
   return
 end subroutine three_body
 

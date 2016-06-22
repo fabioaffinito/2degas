@@ -5,7 +5,11 @@ EXE=rept90.x
 #
 # other fpp flags include -DDEBUG
 #FPP=-fpp -DBLAS_INTERNAL -DDEBUG
+<<<<<<< HEAD
 FPP=-fpp
+=======
+FPP=-fpp -DRESULT_DIR
+>>>>>>> eecb85f1af49532e218cafff9cf01458acaf89e7
 F90FLAGS= -O3 -g
 #F90FLAGS= -O3 -g -qopt-report
 

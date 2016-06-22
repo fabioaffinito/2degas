@@ -19,6 +19,9 @@
 ! mcmf max # pwaves in MF
 ! mitc max # imaginary time correlations
 ! mitc_add max # termx added in each itc quantity
+! Added AE 20-JUNE-2016
+! restart_dir - directory to find restart files (default: current)
+!
 
 ! dimensioni
     integer :: mdim,mnp,mns,mgrid,mtypes,morbit,mnk,mstypes
@@ -261,5 +264,8 @@
 ! excite
     integer :: n_props_exc
     character(50) :: excite_filename
+
+   character(20) :: restart_dir
+!  restart directory for restart files
 
     end module ewald

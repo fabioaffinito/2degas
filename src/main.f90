@@ -8,6 +8,5 @@
       call input
       call sonaseppia
       call MPI_FINALIZE(jrc)
-      stop
-      end
+      end program main
 

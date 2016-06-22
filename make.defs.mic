@@ -5,14 +5,14 @@ BLAS_INTERNAL=
 # other fpp flags include -DDEBUG
 #FPP=-fpp -DBLAS_INTERNAL -DDEBUG
 FPP=-fpp
-F90FLAGS= -O3 -g -mmic -qopt-report-annotated
+F90FLAGS= -O3 -g -mmic -openmp
 
 LDFLAGS=-mmic
 ifdef BLAS_INTERNAL
    EXE=rept90-int-mic.x
    FPP:= $(FPP) -DBLAS_INTERNAL
 else
-   EXE=rept90-mkl-mic.x
+   EXE=rept90-omp-mic.x
    F90_OBJS:= tools.o $(F90_OBJS)
    LDFLAGS:=-mkl
 endif

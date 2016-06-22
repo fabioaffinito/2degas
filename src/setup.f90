@@ -26,6 +26,16 @@ c
       write(*,*)'n_down'
       read(*,*)n_down
 c
+
+
+! Restart file directory
+      restart_dir=''
+#ifdef RESTART_DIR
+      ! The following call needs Fortran 2003
+      call GET_ENVIRONMENT_VARIABLE('RESTART_DIR',restart_dir)
+      restart_dir=trim(restart_dir)
+#endif
+
       ndim=2
       len=index(runid,' ')-1
       open(iunit,file=runid(1:len)//'.sy',status='unknown')

@@ -31,6 +31,11 @@
       character*1 string
 !      character*3 sfix
       character(6) :: sfix
+!      character(:), allocatable :: res_dirfile
+      character(20):: res_dirfile
+
+! vars for user-defined restart directory      
+      logical :: there
 
       data seed/0,0,0,1/
       if(mytid.eq.0)then
@@ -48,6 +53,21 @@
       seed(4)=2*(seed(4)+mytid)+1
       call setrn(seed)
 
+!  read restart file directory (if present)
+      restart_dir='./'
+      if (mytid.eq.0) then         
+         res_dirfile=trim(runid)//'.dir'
+         inquire(file=res_dirfile,exist=there)
+         if (there) then 
+            open(50,file=res_dirfile,status="old")
+            read(50,*) restart_dir
+            close(50)
+         endif
+         write(*,*) 'Using restart directory: ',trim(restart_dir)
+      endif
+      call mpi_bcast(restart_dir,len(restart_dir), MPI_CHARACTER,0,MPI_COMM_WORLD,jrc)
+ 
+      
 ! default
       update_two_body=1
 
@@ -2467,7 +2487,7 @@
        i=index(x_file(it),' ')-1
        j=index(res_string,' ')-1
        open(iunit &
-           ,file=x_file(it)(1:i)//res_string(1:j)//sfix,status='old')
+           ,file=trim(restart_dir)//'/'//x_file(it)(1:i)//res_string(1:j)//sfix,status='old')
       enddo
 ! loop over configurations
       do i=1,ntarget
@@ -2512,7 +2532,7 @@
       do it=1,ntypes
        i=index(x_file(it),' ')-1
        iunit=30+it-1
-       open(iunit,file=x_file(it)(1:i)//'.'//sfix,status='unknown')
+       open(iunit,file=restart_dir//x_file(it)(1:i)//'.'//sfix,status='unknown')
       enddo
       do i=1,nstack
        call getconf

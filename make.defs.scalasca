@@ -12,7 +12,7 @@ ifdef BLAS_INTERNAL
    FPP:= $(FPP) -DBLAS_INTERNAL
    LDFLAGS=
 else
-   EXE=rept90-scal.exe
+   EXE=rept90-scal.x
    F90_OBJS:= tools.o $(F90_OBJS)
    LDFLAGS=-mkl
 endif

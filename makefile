@@ -5,6 +5,7 @@ include make.defs
 
 
 #F90 parallel version
+SRCDIR=src
 F90_SRC =  tools.f90 ewald.f90 main.f90 reptation.f90 three_body.f90
 F90_OBJS =  tools.o ewald.o main.o reptation.o three_body.o 
 
@@ -17,7 +18,7 @@ all : $(EXE)
 $(EXE):$(F90_OBJS)
 	$(F90) $(F90FLAGS) -o $@ $(F90_OBJS) $(LDFLAGS)
 
-%.o:%.f90
+%.o:$(SRCDIR)/%.f90
 	$(F90) $(FPP) $(F90FLAGS) -c $< 
 
 #

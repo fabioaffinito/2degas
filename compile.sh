@@ -1,4 +1,5 @@
 #!/bin/bash
 module purge
 module load autoload intelmpi
-make
+module load mkl
+make 

@@ -54,7 +54,7 @@
       call setrn(seed)
 
 !  read restart file directory (if present)
-      restart_dir='./'
+      restart_dir='.'
       if (mytid.eq.0) then         
          res_dirfile=trim(runid)//'.dir'
          inquire(file=res_dirfile,exist=there)
@@ -66,7 +66,7 @@
          write(*,*) 'Using restart directory: ',trim(restart_dir)
       endif
       call mpi_bcast(restart_dir,len(restart_dir), MPI_CHARACTER,0,MPI_COMM_WORLD,jrc)
- 
+      restart_dir=trim(restart_dir)//'/' 
       
 ! default
       update_two_body=1
@@ -1777,7 +1777,7 @@
       do it=1,ntypes
        i=index(x_file(it),' ')-1
        iunit=30+it-1
-       open(iunit,file=x_file(it)(1:i)//'.'//sfix,status='unknown')
+       open(iunit,file=trim(restart_dir)//x_file(it)(1:i)//'.'//sfix,status='unknown')
       enddo
       do i=jfirst,jfirst+ntau-1
        j=mod(i-1,n_buffer)+1
@@ -2487,7 +2487,7 @@
        i=index(x_file(it),' ')-1
        j=index(res_string,' ')-1
        open(iunit &
-           ,file=trim(restart_dir)//'/'//x_file(it)(1:i)//res_string(1:j)//sfix,status='old')
+           ,file=trim(restart_dir)//x_file(it)(1:i)//res_string(1:j)//sfix,status='old')
       enddo
 ! loop over configurations
       do i=1,ntarget
@@ -2532,7 +2532,7 @@
       do it=1,ntypes
        i=index(x_file(it),' ')-1
        iunit=30+it-1
-       open(iunit,file=restart_dir//x_file(it)(1:i)//'.'//sfix,status='unknown')
+       open(iunit,file=trim(restart_dir)//x_file(it)(1:i)//'.'//sfix,status='unknown')
       enddo
       do i=1,nstack
        call getconf
@@ -4327,7 +4327,7 @@
        do it=1,ntypes
         i=index(x_file(it),' ')-1
         iunit=30+it-1
-        open(iunit,file=x_file(it)(1:i)//'.res.'//sfix,status='unknown')
+        open(iunit,file=trim(restart_dir)//x_file(it)(1:i)//'.res.'//sfix,status='unknown')
        enddo
 ! x_old per il vmc
        if(who.eq.'vmc')then
@@ -9754,8 +9754,8 @@
         i=index(x_file(it),' ')-1
         j=index(res_string,' ')-1
         open(iunit &
-            ,file=x_file(it)(1:i)//res_string(1:j)//sfix,status='old')
-        print*,'processing ',x_file(it)(1:i)//res_string(1:j)//sfix
+            ,file=trim(restart_dir)//x_file(it)(1:i)//res_string(1:j)//sfix,status='old')
+        print*,'processing ',trim(restart_dir)//x_file(it)(1:i)//res_string(1:j)//sfix
        enddo
       endif
 ! read positions

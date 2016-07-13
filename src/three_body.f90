@@ -28,8 +28,13 @@ subroutine three_body
 ! Move the common to a module  
 ! real*8 g(mdim,mnp),dg(mdim,mdim,mnp,mnp),ddg(mdim,mnp,mnp) 
 ! common /scratch/g,dg,ddg
-  
+
+! For memkind lib
+#ifdef MEMKIND
   real(8), allocatable :: g(:,:),dg(:,:,:,:),ddg(:,:,:)
+#else  
+  real(8) ::  g(mdim,mnp),dg(mdim,mdim,mnp,mnp),ddg(mdim,mnp,mnp)
+#endif
 
 !  For timing
   integer :: t1,t2,t3,t4,t5,count_rate
@@ -52,10 +57,14 @@ subroutine three_body
    write(*,*) 'ndim=',ndim
 #endif
 
-! allocate arrays
+#ifdef MEMKIND
+! allocate arrays for memkind lib
   if (.not. allocated(g)) then
      allocate(g(mdim,mnp),dg(mdim,mdim,mnp,mnp),ddg(mdim,mnp,mnp))
   endif
+#endif
+
+
 ! OPT: The following  2 loops do not vectorize since they can be fused and optimised
 !
 

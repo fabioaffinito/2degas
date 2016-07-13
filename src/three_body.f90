@@ -13,15 +13,23 @@
 ! mnp=         166
 ! ndim=2
 ! mdim=           2
+module three_body_vars
 
+real(8), allocatable :: g(:,:),dg(:,:,:,:),ddg(:,:,:)
+
+end module three_body_vars
 
 subroutine three_body
   use ewald
   implicit none
   integer i,ijcount,it,jt,ip,jp,idim,jdim
   real*8 t,dt,ddt
-  real*8 g(mdim,mnp),dg(mdim,mdim,mnp,mnp),ddg(mdim,mnp,mnp)
-  common /scratch/g,dg,ddg
+
+! Move the common to a module  
+! real*8 g(mdim,mnp),dg(mdim,mdim,mnp,mnp),ddg(mdim,mnp,mnp) 
+! common /scratch/g,dg,ddg
+  
+  real(8), allocatable :: g(:,:),dg(:,:,:,:),ddg(:,:,:)
 
 !  For timing
   integer :: t1,t2,t3,t4,t5,count_rate
@@ -44,7 +52,10 @@ subroutine three_body
    write(*,*) 'ndim=',ndim
 #endif
 
-
+! allocate arrays
+  if (.not. allocated(g)) then
+     allocate(g(mdim,mnp),dg(mdim,mdim,mnp,mnp),ddg(mdim,mnp,mnp))
+  endif
 ! OPT: The following  2 loops do not vectorize since they can be fused and optimised
 !
 

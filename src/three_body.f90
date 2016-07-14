@@ -31,6 +31,7 @@ subroutine three_body
 
 ! For memkind lib
 #ifdef MEMKIND
+!dec$ attributes, fastmem :: g,dg,ddg
   real(8), allocatable :: g(:,:),dg(:,:,:,:),ddg(:,:,:)
 #else  
   real(8) ::  g(mdim,mnp),dg(mdim,mdim,mnp,mnp),ddg(mdim,mnp,mnp)

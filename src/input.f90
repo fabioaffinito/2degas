@@ -1,212 +1,234 @@
-      subroutine input
-! read input
-      use ewald
-      use mpi
-       implicit none
-      integer i,j,it,jt,idum,idim,jdim,ntable,nktable,seed(4),jrc
-      integer ierr
-      integer ng(mdim)
-      real*8 eps(mdim),gg,aux
-      character*48 word(mword),filename
-      character*80 record,bf2_record
-      character*1 string
-!      character*3 sfix
-      character(6) :: sfix
-!      character(:), allocatable :: res_dirfile
-      character(20):: res_dirfile
+subroutine input
+  ! read input
+  use ewald
+  use mpi
+  use omp_lib
+  implicit none
+  integer i,j,it,jt,idum,idim,jdim,ntable,nktable,seed(4),jrc
+  integer ierr
+  integer ng(mdim)
+  real*8 eps(mdim),gg,aux
+  character*48 word(mword),filename
+  character*80 record,bf2_record
+  character*1 string
+  !      character*3 sfix
+  character(6) :: sfix
+  !      character(:), allocatable :: res_dirfile
+  character(20):: res_dirfile
 
-! vars for user-defined restart directory      
-      logical :: there
+  ! vars for user-defined restart directory      
+  logical :: there
 
-      data seed/0,0,0,1/
+  data seed/0,0,0,1/
 
-!$OMP single 
-!      if(mytid.eq.0)then
-       write(6,*)'nproc = ',nproc
-       open(2,file='runid',status='old')
-       read(2,'(a)')runid
-       close(2)
-       open(2,file='seed',status='unknown')
-       read(2,*,end=2)seed
-    2  close(2)
- !     endif
+  !$OMP parallel default(private) shared(nproc)
+  nproc=omp_get_num_threads()
+  mytid=omp_get_thread_num()
 
-!      call MPI_BCAST(runid,48,MPI_CHARACTER,0,MPI_COMM_WORLD,jrc)
-!      call MPI_BCAST(seed,4,MPI_INTEGER,0,MPI_COMM_WORLD,jrc)
-      call setrn2(seed)
-      seed(4)=2*(seed(4)+mytid)+1
-      call setrn(seed)
+  !$OMP single shared(runid)
 
-!  read restart file directory (if present)
-      restart_dir='.'
-      if (mytid.eq.0) then         
-         res_dirfile=trim(runid)//'.dir'
-         inquire(file=res_dirfile,exist=there)
-         if (there) then 
-            open(50,file=res_dirfile,status="old")
-            read(50,*) restart_dir
-            close(50)
-         endif
-         write(*,*) 'Using restart directory: ',trim(restart_dir)
-      endif
-!      call mpi_bcast(restart_dir,len(restart_dir), MPI_CHARACTER,0,MPI_COMM_WORLD,jrc)
-      restart_dir=trim(restart_dir)//'/' 
-      
-! default
-      update_two_body=1
+  !!      if(mytid.eq.0)then
 
-      e0=0
-      v0=0
-      etrial=0.d0
-      adrift=0.d0
-      gstorto=0
-      wpiu=0
-      nodalaction=0
-      rejection=1
-      fullprop=1
-      ecut=0
-      der_nskip=0
-      dx_bf2=0
-      dx=0
-      iblk0=1
-      res_string='.'
+  write(6,*)'nproc = ',nproc
+  open(2,file='runid',status='old')
+  read(2,'(a)')runid
+  close(2)
+  open(2,file='seed',status='unknown')
+  read(2,*,end=2)seed
+2 close(2)
+  !     endif
 
-      ntypes=0
-      call c_set(mtypes                     ,typename  ,' ')
-      call c_set(mtypes                     ,x_file    ,' ')
-      call r_set(mtypes                     ,hbs2m     ,0.d0)
-      call i_set(mtypes                     ,np        ,0)
-      call i_set(mtypes                     ,ipwave    ,0)
-      call i_set(mtypes                     ,iveff     ,0)
-      call i_set(mtypes                     ,ivext     ,0)
-      call i_set(mtypes                     ,imstar    ,0)
-      call i_set(mtypes                     ,itcmass   ,0)
-      call i_set(mtypes                     ,irhok     ,0)
-      call i_set(mtypes*mtypes              ,igofr     ,0)
-      call i_set(mtypes                     ,lcao      ,0)
-      call i_set(mtypes*mns                 ,nlcao     ,0)
-      call i_set(morbit*mtypes*mns          ,nlmlcao   ,0)
-      call i_set(mao*morbit*mtypes*mns*minc ,ilcaotable,0)
-      call i_set(mao*morbit*mtypes*mns      ,ilmlcao   ,0)
-      call i_set(morbit*mtypes*mns          ,ilcao     ,0)
-      call r_set(mao*morbit*mtypes*mns*minc ,lcaovalue ,1.d0)
-      call i_set(mtypes*mtypes*minc         ,iu2table  ,0)
-      call i_set(mtypes*mtypes*minc         ,iubtable  ,0)
-      call i_set(mtypes*minc                ,iub2table ,0)
-      call i_set(mtypes*mtypes*minc         ,iu3table  ,0)
-      call i_set(mtypes*mtypes*minc         ,iv2table  ,0)
-      call r_set(mtypes*mtypes*minc         ,v2value   ,1.d0)
-      call i_set(mtypes*mtypes              ,pp_dist   ,0)
-      call i_set(mtypes*mstypes             ,ps_dist   ,0)
+  !!      call MPI_BCAST(runid,48,MPI_CHARACTER,0,MPI_COMM_WORLD,jrc)
+  !!      call MPI_BCAST(seed,4,MPI_INTEGER,0,MPI_COMM_WORLD,jrc)
 
-      nstypes=0
-      call c_set(mstypes                    ,stypename ,' ')
-      call i_set(mstypes                    ,ns        ,0)
-      call i_set(mstypes*mtypes*minc        ,isntable  ,0)
-      call i_set(mstypes*mtypes*minc        ,intable   ,0)
-      call i_set(mstypes*mtypes*minc        ,iu3_spptable,0)
-      call i_set(mstypes*mtypes*minc        ,ivpstable ,0)
-      call i_set(mstypes*mtypes*minc        ,ibntable  ,0)
-      call r_set(mstypes*mtypes*minc        ,vpsvalue  ,1.d0)
-      call i_set(mstypes*mtypes             ,ps_dist   ,0)
-      call i_set(mstypes*mtypes             ,n_dist    ,0)
+  !$OMP end single copyprivate(seed)
 
-      call c_set(mnt                        ,tablename ,' ')
-      call r_set(mnt                        ,tail      ,0.d0)
-      call i_set(mnt                        ,iexp      ,0)
-      call i_set(mnt                        ,nk_ewald  ,0)
-      ntable=0
-      nktable=0
-      nder=0
-      nmstar=0
-      ncmass=0
-      nrhok=0
-      ngofr=0
-      nitc=0
-      ninc=1
-      iinc=1
-      call c_set(mder                       ,dername   ,' ')
-      call i_set(mder                       ,derwpiu   ,0)
-      call i_set(mder                       ,dergstorto,0)
-      call i_set(mder                       ,dercyrus  ,0)
-      call r_set(mder                       ,deradrift ,0.d0)
-      call r_set(mdim                       ,el        ,0.d0)
-      call r_set(mdim                       ,eli       ,0.d0)
-      ntarget=1
-      nstack=0
-      age=0
-      pi=acos(-1.d0)
-      jbra=1
-      jdtp=2
-      jitp=3
-      jlng=4
-      jnds=5
-!     jlnw=6
-! read input
-      if(mytid.eq.0)then
-       i=index(runid,' ')-1
-       open(2,file=runid(1:i)//'.sy',status='old')
-      endif
-! loop over input records
-      do idum=1,1000
-       if(mytid.eq.0)call readwords(2,mword,word,i,record)
-       call MPI_BCAST(i,1,MPI_INTEGER,0,MPI_COMM_WORLD,jrc)
-       if(i.eq.1)go to 1
-       i=48*mword
-       call MPI_BCAST(word,i,MPI_CHARACTER,0,MPI_COMM_WORLD,jrc)
-! space dimensions
-       if(word(1).eq.'ndim')then
-       read(word(2),*)ndim
-! constant potential
-       elseif(word(1).eq.'v0')then
+
+  call setrn2(seed)
+  seed(4)=2*(seed(4)+mytid)+1
+  call setrn(seed)
+
+  !  read restart file directory (if present)
+
+  !      if (mytid.eq.0) then         
+
+  !$OMP single shared(restart_dir)
+  restart_dir='.'
+  res_dirfile=trim(runid)//'.dir'
+  inquire(file=res_dirfile,exist=there)
+  if (there) then 
+     open(50,file=res_dirfile,status="old")
+     read(50,*) restart_dir
+     close(50)
+  endif
+  write(*,*) 'Using restart directory: ',trim(restart_dir)
+  !      endif
+  !      call mpi_bcast(restart_dir,len(restart_dir), MPI_CHARACTER,0,MPI_COMM_WORLD,jrc)
+  restart_dir=trim(restart_dir)//'/' 
+
+  !$omp end single
+
+  ! default
+  update_two_body=1
+
+  e0=0
+  v0=0
+  etrial=0.d0
+  adrift=0.d0
+  gstorto=0
+  wpiu=0
+  nodalaction=0
+  rejection=1
+  fullprop=1
+  ecut=0
+  der_nskip=0
+  dx_bf2=0
+  dx=0
+  iblk0=1
+  res_string='.'
+
+  ntypes=0
+  call c_set(mtypes                     ,typename  ,' ')
+  call c_set(mtypes                     ,x_file    ,' ')
+  call r_set(mtypes                     ,hbs2m     ,0.d0)
+  call i_set(mtypes                     ,np        ,0)
+  call i_set(mtypes                     ,ipwave    ,0)
+  call i_set(mtypes                     ,iveff     ,0)
+  call i_set(mtypes                     ,ivext     ,0)
+  call i_set(mtypes                     ,imstar    ,0)
+  call i_set(mtypes                     ,itcmass   ,0)
+  call i_set(mtypes                     ,irhok     ,0)
+  call i_set(mtypes*mtypes              ,igofr     ,0)
+  call i_set(mtypes                     ,lcao      ,0)
+  call i_set(mtypes*mns                 ,nlcao     ,0)
+  call i_set(morbit*mtypes*mns          ,nlmlcao   ,0)
+  call i_set(mao*morbit*mtypes*mns*minc ,ilcaotable,0)
+  call i_set(mao*morbit*mtypes*mns      ,ilmlcao   ,0)
+  call i_set(morbit*mtypes*mns          ,ilcao     ,0)
+  call r_set(mao*morbit*mtypes*mns*minc ,lcaovalue ,1.d0)
+  call i_set(mtypes*mtypes*minc         ,iu2table  ,0)
+  call i_set(mtypes*mtypes*minc         ,iubtable  ,0)
+  call i_set(mtypes*minc                ,iub2table ,0)
+  call i_set(mtypes*mtypes*minc         ,iu3table  ,0)
+  call i_set(mtypes*mtypes*minc         ,iv2table  ,0)
+  call r_set(mtypes*mtypes*minc         ,v2value   ,1.d0)
+  call i_set(mtypes*mtypes              ,pp_dist   ,0)
+  call i_set(mtypes*mstypes             ,ps_dist   ,0)
+
+  nstypes=0
+  call c_set(mstypes                    ,stypename ,' ')
+  call i_set(mstypes                    ,ns        ,0)
+  call i_set(mstypes*mtypes*minc        ,isntable  ,0)
+  call i_set(mstypes*mtypes*minc        ,intable   ,0)
+  call i_set(mstypes*mtypes*minc        ,iu3_spptable,0)
+  call i_set(mstypes*mtypes*minc        ,ivpstable ,0)
+  call i_set(mstypes*mtypes*minc        ,ibntable  ,0)
+  call r_set(mstypes*mtypes*minc        ,vpsvalue  ,1.d0)
+  call i_set(mstypes*mtypes             ,ps_dist   ,0)
+  call i_set(mstypes*mtypes             ,n_dist    ,0)
+
+  call c_set(mnt                        ,tablename ,' ')
+  call r_set(mnt                        ,tail      ,0.d0)
+  call i_set(mnt                        ,iexp      ,0)
+  call i_set(mnt                        ,nk_ewald  ,0)
+  ntable=0
+  nktable=0
+  nder=0
+  nmstar=0
+  ncmass=0
+  nrhok=0
+  ngofr=0
+  nitc=0
+  ninc=1
+  iinc=1
+  call c_set(mder                       ,dername   ,' ')
+  call i_set(mder                       ,derwpiu   ,0)
+  call i_set(mder                       ,dergstorto,0)
+  call i_set(mder                       ,dercyrus  ,0)
+  call r_set(mder                       ,deradrift ,0.d0)
+  call r_set(mdim                       ,el        ,0.d0)
+  call r_set(mdim                       ,eli       ,0.d0)
+  ntarget=1
+  nstack=0
+  age=0
+  pi=acos(-1.d0)
+  jbra=1
+  jdtp=2
+  jitp=3
+  jlng=4
+  jnds=5
+  !     jlnw=6
+  ! read input
+
+!!!! Have to think about this !!!
+
+  !$omp single
+  !      if(mytid.eq.0)then
+  i=index(runid,' ')-1
+  open(2,file=runid(1:i)//'.sy',status='old')
+  !      endif
+
+  ! loop over input records
+  do 
+     !       if(mytid.eq.0)call readwords(2,mword,word,i,record)
+     call readwords(2,mword,word,i,record)
+     !call MPI_BCAST(i,1,MPI_INTEGER,0,MPI_COMM_WORLD,jrc)
+     if(i.eq.1) exit
+     i=48*mword
+     !call MPI_BCAST(word,i,MPI_CHARACTER,0,MPI_COMM_WORLD,jrc)
+     ! space dimensions
+     if(word(1).eq.'ndim')then
+        read(word(2),*)ndim
+        ! constant potential
+     elseif(word(1).eq.'v0')then
         read(word(2),*)v0
-! cut drift
-       elseif(word(1).eq.'adrift')then
+        ! cut drift
+     elseif(word(1).eq.'adrift')then
         read(word(2),*)adrift
-! gstorto sampling
-       elseif(word(1).eq.'gstorto')then
+        ! gstorto sampling
+     elseif(word(1).eq.'gstorto')then
         read(word(2),*)gstorto
-! wpiu sampling
-       elseif(word(1).eq.'wpiu')then
+        ! wpiu sampling
+     elseif(word(1).eq.'wpiu')then
         read(word(2),*)wpiu
-! nodal action
-       elseif(word(1).eq.'nodalaction')then
+        ! nodal action
+     elseif(word(1).eq.'nodalaction')then
         read(word(2),*)nodalaction    
-! langevin rejections in rmc
-       elseif(word(1).eq.'rejection')then
+        ! langevin rejections in rmc
+     elseif(word(1).eq.'rejection')then
         read(word(2),*)rejection
-! propagatore con solo jbra in rmcder
-       elseif(word(1).eq.'fullprop')then
+        ! propagatore con solo jbra in rmcder
+     elseif(word(1).eq.'fullprop')then
         read(word(2),*)fullprop
-! cut elocal
-       elseif(word(1).eq.'ecut')then
+        ! cut elocal
+     elseif(word(1).eq.'ecut')then
         read(word(2),*)ecut
         if(ecut.ne.0)read(word(3),*)value_ecut
-! seed
-       elseif(word(1).eq.'seed')then
+        ! seed
+     elseif(word(1).eq.'seed')then
         do i=1,4
-         read(word(i+1),*)seed(i)
+           read(word(i+1),*)seed(i)
         enddo
         call setrn2(seed)
         seed(4)=2*(seed(4)+mytid)+1
         call setrn(seed)
-! box sides for periodic boundary conditions
-       elseif(word(1).eq.'pbc')then
+        ! box sides for periodic boundary conditions
+     elseif(word(1).eq.'pbc')then
         do i=1,ndim
-         read(word(i+1),*)el(i)
-         eli(i)=1.d0/el(i)
+           read(word(i+1),*)el(i)
+           eli(i)=1.d0/el(i)
         enddo
-! read reciprocal lattice vectors of the simulation box
-       elseif(word(1).eq.'kspace')then
+        ! read reciprocal lattice vectors of the simulation box
+     elseif(word(1).eq.'kspace')then
         call kread(word(2),3)
-! rhok for given type at the k vectors of kspace (need pbc, kspace)
-       elseif(word(1).eq.'rhok')then
+        ! rhok for given type at the k vectors of kspace (need pbc, kspace)
+     elseif(word(1).eq.'rhok')then
         nrhok=nrhok+1
         do i=1,mtypes
-         if(word(2).eq.typename(i))it=i
+           if(word(2).eq.typename(i))it=i
         enddo
         irhok(it)=nrhok
-! gofr
+        ! gofr
      elseif(word(1).eq.'gofr')then
         ngofr=ngofr+1
         do i=1,mtypes
@@ -521,16 +543,26 @@
         read(word(11),*)dercyrus(nder)
         ! ecco fatto
      elseif(word(1).eq.'end')then
-        go to 1
+        exit
      else
-        if(mytid.eq.0)write(6,*)word(1),' not a keyword'
-        call MPI_FINALIZE(jrc)
+        !!if(mytid.eq.0)write(6,*)word(1),' not a keyword'
+        !!call MPI_FINALIZE(jrc)
+        write(6,*) word(1),' not a keyword'
         stop
      endif
   enddo
-1 if(mytid.eq.0)close(2)
-  if(mytid.eq.0)write(6,*)'seed ',seed
+  !1 if(mytid.eq.0)close(2)
+  close(2)
+  write(6,*)'seed ',seed
   ! numero di particelle
+
+  ! check single/private. esp sseed.  cmass
+!$omp end single copyprivate(ndim,v0,adrift,gstorto,wpiu,nodalaction,rejection,fullprop, &
+!$omp ecut,seed,nk,knorm2,kvec,ktens, & 
+!$omp irhok,igofr,pp_dist,ngrid_gofr_ratio, typename, np,hbs2m, x_file, &
+!$somp nk_ewald, ngrid, drt, ut, &   
+!$omp iv2table, tail, iexp, v2value, iu2table, iu3table, ibckf, iubtable, ntheta )
+
   nptot=0                         ! total # of particles
   npnorm=0                        ! total # of moving particles
   do it=1,ntypes
@@ -723,5 +755,146 @@
         call MPI_BCAST(gvec,mdim*nk,MPI_REAL8,0,MPI_COMM_WORLD,jrc)
      endif
   endif
+
+  !$omp single end
+
   return
 end subroutine input
+
+
+subroutine kread(file,iunit)
+  ! read reciprocal lattice vectors of the simulation box
+  use ewald
+  use mpi
+  implicit none
+  integer ik,idim,jdim,iunit,jrc
+  character*48 file
+!  if(mytid.eq.0)then
+     open(iunit,file=file,status='old')
+     do ik=1,mnk
+        read(iunit,*,end=1)(kvec(idim,ik),idim=1,ndim)
+        knorm2(ik)=0.d0
+        do idim=1,ndim
+           knorm2(ik)=knorm2(ik)+kvec(idim,ik)**2
+        enddo
+        do idim=1,ndim
+           do jdim=1,ndim
+              ktens(idim,jdim,ik)=kvec(idim,ik)*kvec(jdim,ik)
+           enddo
+        enddo
+     enddo
+1    nk=ik-1
+     close(iunit)
+!  endif
+!  call MPI_BCAST(nk,1,MPI_INTEGER,0,MPI_COMM_WORLD,jrc)
+!  call MPI_BCAST(knorm2,nk,MPI_REAL8,0,MPI_COMM_WORLD,jrc)
+!  call MPI_BCAST(kvec,mdim*nk,MPI_REAL8,0,MPI_COMM_WORLD,jrc)
+!  call MPI_BCAST(ktens,mdim*mdim*nk,MPI_REAL8,0,MPI_COMM_WORLD,jrc)
+  return
+end subroutine kread
+
+
+subroutine readwords(iunit,mword,words,eof_flag,record)
+  ! read words from record. if iunit.ne.0 record is read from unit
+  integer iunit,mword,iscan,n_items,i,lrec,j,eof_flag
+  character*80 record
+  character*48 word,words(mword)
+  character*1  char
+  do i=1,mword
+     words(i)=' '
+  enddo
+  do i=1,48
+     word(i:i)=' '
+  enddo
+  n_items=0
+  eof_flag=0
+4 continue
+  if(iunit.ne.0)then
+     read(iunit,'(a)',end=3)record
+     write(6,*)record
+  endif
+  ! the first item is the number of subsequent items
+  lrec=80
+  iscan=0
+  ! find next item
+  do i=1,10000
+     ! read next char
+     iscan=iscan+1
+     ! end of record
+     if(iscan.eq.lrec+1)go to 2
+     read(record(iscan:iscan),'(a)')char
+     if(char.eq.'\\')then
+        go to 4
+     endif
+     if(char.ne.' ')then
+        ! item found
+        n_items=n_items+1
+        do j=1,100
+           word(j:j)=char
+           iscan=iscan+1
+           read(record(iscan:iscan),'(a)')char
+           if(char.eq.' ')go to 1
+        enddo
+1       read(word,'(a)')words(n_items)
+     endif
+     ! reset word
+     do j=1,48
+        word(j:j)=' '
+     enddo
+  enddo
+2 return
+3 eof_flag=1
+  return
+end subroutine readwords
+
+
+subroutine t_read(file,itable,ntable,iunit)
+  ! read a lookup table
+  use ewald
+  use mpi
+  implicit none
+  integer itable,ntable,iunit,it,j,jrc
+  character*48 file,string
+  ! check if this table has been read already
+  do itable=1,ntable
+     if(file.eq.tablename(itable))return
+  enddo
+  ! if not add a new table
+  ntable=ntable+1
+  read(file,'(a)')tablename(ntable)
+  if(mytid.eq.0)then
+     open(iunit,file=file,status='old')
+     read(iunit,*)ngrid(ntable),drt
+     do it=0,ngrid(ntable)
+        read(iunit,*)(ut(it,j,ntable),j=1,4)
+     enddo
+     read(iunit,*)string
+     write(6,*)'routinename ',string
+     read(iunit,*) it
+     write(6,*)'# param ',it
+     do j=1,it
+        read(iunit,*)
+     enddo
+     read(iunit,*,end=1)string
+     if(string.eq.'kspace')then
+        read(iunit,*)nk_ewald(ntable)
+        do it=1,nk_ewald(ntable)
+           read(iunit,*)ut(ngrid(ntable)+it,1,ntable) ! vk
+        enddo
+        read(iunit,*)ut(ngrid(ntable)+nk_ewald(ntable)+1,1,ntable) ! vk0
+        write(6,*)nk_ewald(ntable),' punti in spazio k'
+     endif
+1    close(iunit)
+  endif
+  ! questi MPI_BCAST funzionano solo per la parte in spazio r
+ ! call MPI_BCAST(nk_ewald(ntable),1,MPI_INTEGER,0 &
+ !      ,MPI_COMM_WORLD,jrc)
+  !call MPI_BCAST(ngrid(ntable),1,MPI_INTEGER,0  ,MPI_COMM_WORLD,jrc)
+  !call MPI_BCAST(drt,1,MPI_REAL8,0              ,MPI_COMM_WORLD,jrc)
+  !call MPI_BCAST(ut(0,1,ntable),4*(mgrid+1),MPI_REAL8,0 &
+  !     ,MPI_COMM_WORLD,jrc)
+  drti=1.d0/drt
+  drti2=2.d0*drti**2
+  if(mytid.eq.0)write(6,*)'ECCOFATTO'
+  return
+end subroutine t_read

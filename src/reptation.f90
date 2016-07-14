@@ -3815,87 +3815,7 @@
       return
       end
 
-      subroutine t_read(file,itable,ntable,iunit)
-! read a lookup table
-      use ewald
-      use mpi
-       implicit none
-      integer itable,ntable,iunit,it,j,jrc
-      character*48 file,string
-! check if this table has been read already
-      do itable=1,ntable
-       if(file.eq.tablename(itable))return
-      enddo
-! if not add a new table
-      ntable=ntable+1
-      read(file,'(a)')tablename(ntable)
-      if(mytid.eq.0)then
-       open(iunit,file=file,status='old')
-       read(iunit,*)ngrid(ntable),drt
-       do it=0,ngrid(ntable)
-        read(iunit,*)(ut(it,j,ntable),j=1,4)
-       enddo
-       read(iunit,*)string
-       write(6,*)'routinename ',string
-       read(iunit,*) it
-       write(6,*)'# param ',it
-       do j=1,it
-        read(iunit,*)
-       enddo
-       read(iunit,*,end=1)string
-       if(string.eq.'kspace')then
-        read(iunit,*)nk_ewald(ntable)
-        do it=1,nk_ewald(ntable)
-         read(iunit,*)ut(ngrid(ntable)+it,1,ntable) ! vk
-        enddo
-        read(iunit,*)ut(ngrid(ntable)+nk_ewald(ntable)+1,1,ntable) ! vk0
-        write(6,*)nk_ewald(ntable),' punti in spazio k'
-       endif
-    1  close(iunit)
-      endif
-! questi MPI_BCAST funzionano solo per la parte in spazio r
-      call MPI_BCAST(nk_ewald(ntable),1,MPI_INTEGER,0 &
-                                                    ,MPI_COMM_WORLD,jrc)
-      call MPI_BCAST(ngrid(ntable),1,MPI_INTEGER,0  ,MPI_COMM_WORLD,jrc)
-      call MPI_BCAST(drt,1,MPI_REAL8,0              ,MPI_COMM_WORLD,jrc)
-      call MPI_BCAST(ut(0,1,ntable),4*(mgrid+1),MPI_REAL8,0 &
-                                                    ,MPI_COMM_WORLD,jrc)
-      drti=1.d0/drt
-      drti2=2.d0*drti**2
-      if(mytid.eq.0)write(6,*)'ECCOFATTO'
-      return
-      end
 
-      subroutine kread(file,iunit)
-! read reciprocal lattice vectors of the simulation box
-      use ewald
-      use mpi
-       implicit none
-      integer ik,idim,jdim,iunit,jrc
-      character*48 file
-      if(mytid.eq.0)then
-       open(iunit,file=file,status='old')
-       do ik=1,mnk
-        read(iunit,*,end=1)(kvec(idim,ik),idim=1,ndim)
-        knorm2(ik)=0.d0
-        do idim=1,ndim
-         knorm2(ik)=knorm2(ik)+kvec(idim,ik)**2
-        enddo
-        do idim=1,ndim
-         do jdim=1,ndim
-          ktens(idim,jdim,ik)=kvec(idim,ik)*kvec(jdim,ik)
-         enddo
-        enddo
-       enddo
- 1     nk=ik-1
-       close(iunit)
-      endif
-      call MPI_BCAST(nk,1,MPI_INTEGER,0,MPI_COMM_WORLD,jrc)
-      call MPI_BCAST(knorm2,nk,MPI_REAL8,0,MPI_COMM_WORLD,jrc)
-      call MPI_BCAST(kvec,mdim*nk,MPI_REAL8,0,MPI_COMM_WORLD,jrc)
-      call MPI_BCAST(ktens,mdim*mdim*nk,MPI_REAL8,0,MPI_COMM_WORLD,jrc)
-      return
-      end
 
       subroutine xread(file,iunit,x,frst,lst,mdim,ndim,mytid)
 ! read and broadcast positions
@@ -3916,58 +3836,7 @@
       return
       end
 
-      subroutine readwords(iunit,mword,words,eof_flag,record)
-! read words from record. if iunit.ne.0 record is read from unit
-      integer iunit,mword,iscan,n_items,i,lrec,j,eof_flag
-      character*80 record
-      character*48 word,words(mword)
-      character*1  char
-      do i=1,mword
-       words(i)=' '
-      enddo
-      do i=1,48
-       word(i:i)=' '
-      enddo
-      n_items=0
-      eof_flag=0
-    4 continue
-      if(iunit.ne.0)then
-       read(iunit,'(a)',end=3)record
-       write(6,*)record
-      endif
-! the first item is the number of subsequent items
-      lrec=80
-      iscan=0
-! find next item
-      do i=1,10000
-! read next char
-        iscan=iscan+1
-! end of record
-        if(iscan.eq.lrec+1)go to 2
-        read(record(iscan:iscan),'(a)')char
-        if(char.eq.'\\')then
-         go to 4
-        endif
-        if(char.ne.' ')then
-! item found
-         n_items=n_items+1
-         do j=1,100
-          word(j:j)=char
-          iscan=iscan+1
-          read(record(iscan:iscan),'(a)')char
-          if(char.eq.' ')go to 1
-         enddo
-    1    read(word,'(a)')words(n_items)
-        endif
-! reset word
-        do j=1,48
-         word(j:j)=' '
-        enddo
-      enddo
-    2 return
-    3 eof_flag=1
-      return
-      end
+ 
 
       subroutine krlv(cut,a,ndim,mdim,gvect,mnk,ng,verbose)
 ! vettori del reticolo reciproco

@@ -1,7 +1,8 @@
 subroutine input
   ! read input
   use ewald
-  use mpi
+!  use mpi
+  use utils
   use omp_lib
   implicit none
   integer i,j,it,jt,idum,idim,jdim,ntable,nktable,seed(4),jrc
@@ -21,11 +22,11 @@ subroutine input
 
   data seed/0,0,0,1/
 
-  !$OMP parallel default(private) shared(nproc)
+ !$OMP parallel default(private) shared(nproc,runid,restart_dir)
   nproc=omp_get_num_threads()
   mytid=omp_get_thread_num()
 
-  !$OMP single shared(runid)
+ !$OMP single 
 
   !!      if(mytid.eq.0)then
 
@@ -41,18 +42,13 @@ subroutine input
   !!      call MPI_BCAST(runid,48,MPI_CHARACTER,0,MPI_COMM_WORLD,jrc)
   !!      call MPI_BCAST(seed,4,MPI_INTEGER,0,MPI_COMM_WORLD,jrc)
 
-  !$OMP end single copyprivate(seed)
-
-
   call setrn2(seed)
   seed(4)=2*(seed(4)+mytid)+1
   call setrn(seed)
 
   !  read restart file directory (if present)
-
   !      if (mytid.eq.0) then         
 
-  !$OMP single shared(restart_dir)
   restart_dir='.'
   res_dirfile=trim(runid)//'.dir'
   inquire(file=res_dirfile,exist=there)
@@ -66,7 +62,7 @@ subroutine input
   !      call mpi_bcast(restart_dir,len(restart_dir), MPI_CHARACTER,0,MPI_COMM_WORLD,jrc)
   restart_dir=trim(restart_dir)//'/' 
 
-  !$omp end single
+!$OMP end single copyprivate(seed)
 
   ! default
   update_two_body=1
@@ -162,7 +158,9 @@ subroutine input
 
 !!!! Have to think about this !!!
 
-  !$omp single
+!-- read n26.sy in serial mode --
+!$omp single
+
   !      if(mytid.eq.0)then
   i=index(runid,' ')-1
   open(2,file=runid(1:i)//'.sy',status='old')
@@ -557,11 +555,14 @@ subroutine input
   ! numero di particelle
 
   ! check single/private. esp sseed.  cmass
+
 !$omp end single copyprivate(ndim,v0,adrift,gstorto,wpiu,nodalaction,rejection,fullprop, &
 !$omp ecut,seed,nk,knorm2,kvec,ktens, & 
 !$omp irhok,igofr,pp_dist,ngrid_gofr_ratio, typename, np,hbs2m, x_file, &
-!$somp nk_ewald, ngrid, drt, ut, &   
+!$omp nk_ewald, ngrid, drt, ut, &   
 !$omp iv2table, tail, iexp, v2value, iu2table, iu3table, ibckf, iubtable, ntheta )
+
+!-- end read n26.sy ----
 
   nptot=0                         ! total # of particles
   npnorm=0                        ! total # of moving particles
@@ -576,6 +577,7 @@ subroutine input
      i=i+np(it)-1
      iplst(it)=i
   enddo
+
   ! backflow2 setup (solo e-gas paramagnetico)
   if(iub2table(1,iinc).ne.0)then
      do it=1,ntypes
@@ -597,11 +599,6 @@ subroutine input
         enddo
 
         do i=1,nshll
-           !         if(i.lt.10)then
-           !          write(sfix,'(i1)')i
-           !         elseif(mytid.lt.100)then
-           !          write(sfix,'(i2)')i
-           !         endif
            write(sfix,'(i0)') i
            filename=word(2)(1:index(word(2),' ')-1)//'.'//sfix
            call t_read(filename,j,ntable,3)
@@ -622,6 +619,8 @@ subroutine input
         enddo
      endif
   endif
+!endif backflow2
+
   ! nomi e indici per le medie scalari
   jetot=1                         ! energy/particle
   name(1)='elocal  '
@@ -726,7 +725,9 @@ subroutine input
         j=j+ipwave(i)
      enddo
      if(j.ne.0.or.ibckf.ne.0)then
-        if(mytid.eq.0)then
+
+!$omp single    
+!        if(mytid.eq.0)then
            do idim=1,ndim
               gvec(idim,1)=0.d0
            enddo
@@ -750,14 +751,15 @@ subroutine input
                  enddo
               enddo
            enddo
-        endif
-        call MPI_BCAST(gnorm2,nk,MPI_REAL8,0,MPI_COMM_WORLD,jrc)
-        call MPI_BCAST(gvec,mdim*nk,MPI_REAL8,0,MPI_COMM_WORLD,jrc)
+        !endif
+!$omp end single copyprivate(gnorm2,gvec)
+!        call MPI_BCAST(gnorm2,nk,MPI_REAL8,0,MPI_COMM_WORLD,jrc)
+!        call MPI_BCAST(gvec,mdim*nk,MPI_REAL8,0,MPI_COMM_WORLD,jrc)
+!------
      endif
   endif
 
-  !$omp single end
-
+!$omp end parallel
   return
 end subroutine input
 
@@ -765,7 +767,7 @@ end subroutine input
 subroutine kread(file,iunit)
   ! read reciprocal lattice vectors of the simulation box
   use ewald
-  use mpi
+!  use mpi
   implicit none
   integer ik,idim,jdim,iunit,jrc
   character*48 file
@@ -851,7 +853,7 @@ end subroutine readwords
 subroutine t_read(file,itable,ntable,iunit)
   ! read a lookup table
   use ewald
-  use mpi
+!  use mpi
   implicit none
   integer itable,ntable,iunit,it,j,jrc
   character*48 file,string
@@ -898,3 +900,350 @@ subroutine t_read(file,itable,ntable,iunit)
   if(mytid.eq.0)write(6,*)'ECCOFATTO'
   return
 end subroutine t_read
+
+subroutine phonon(eps,ng)
+  use ewald
+  integer ng(mdim),jt,jp,idim
+  real*8 eps(mdim),qx,cosqx
+  do jt=1,nstypes
+     do jp=isfrst(jt),islst(jt)
+        qx=0.d0
+        do idim=1,ndim
+           qx=qx+sites(idim,jp,1)*eli(idim)*ng(idim)
+        enddo
+        cosqx=sin(2*pi*qx)
+        do idim=1,ndim
+           sites(idim,jp,iinc)=sites(idim,jp,1)+eps(idim)*cosqx
+        enddo
+        write(47,*)(sites(idim,jp,iinc),idim=1,ndim)
+     enddo
+  enddo
+  return
+end subroutine phonon
+
+
+subroutine matcfs(it)
+  ! lowest-energy configuration and the coefficients of mathieu functions
+  ! [2d; eff.pot. v(x)=v*cos(ng*tpiba*x)]
+  use ewald
+  use utils
+  integer mm
+  parameter(mm=201)
+  integer it,iaux_cmf(0:mm,0:mm),iauxmf(0:mm,2),i,j,l(mm),k(mm) &
+       ,m0,m,m2p1,n2p1,n,np1,kplus,kmins,ig,ng,istart,i2p1 &
+       ,i2,ishift,jpw,jmf,iffind,jp1,im1,jj,jzero,j2,j2p1
+  real*8 a(mm,mm),d(mm),e(mm),f(mm),aux_cmf(0:mm,0:mm),tpiba &
+       ,small,sq2i,e_0,v2,epw,etot,x,zero,gx,vx,gxj,fx,ddf,gj2,b,q
+  if(ndim.ne.2)stop 'matcfs: ndim.ne.2'
+  tpiba=2.d0*pi*eli(1)
+  call r_set((mm+1)*(mm+1),aux_cmf(0,0),0.d0)
+  call i_set((mm+1)*(mm+1),iaux_cmf(0,0),0)
+  call i_set((mm+1)*2,iauxmf(0,1),0)
+  call r_set(mm*mm,a,0.d0)
+  call r_set(mm,d,0.d0)
+  call r_set(mm,e,0.d0)
+  call r_set(mm,f,0.d0)
+  call i_set(mm,l,0)
+  call i_set(mm,k,0)
+
+  ! constants
+  data small/.000001d0/
+  sq2i=1.d0/sqrt(2.d0)
+  ng=nint(qveff(it,iinc)/tpiba)
+  e_0=tpiba**2*hbs2m(it)
+  v2=veff(it,iinc)/2
+
+  ! matrix elements and diagonalization
+  m0=nint(sqrt(abs(veff(it,iinc))/e_0/small)/ng)
+  m0=max(10,nint(1.d0+np(it)/2.d0/ng),m0)
+  m0=100
+  do m=m0,0,-1
+     m2p1=m*2+1
+     n2p1=ng*m2p1
+     if(n2p1.le.mm)go to 3
+  end do
+3 n=(n2p1-1)/2
+  np1=n+1
+  kplus=np1
+  kmins=np1
+  iauxmf(1,1)=kplus
+  do i=1,n
+     kplus=kplus+1
+     kmins=kmins-1
+     iauxmf(2*i,1)=kplus
+     iauxmf(2*i+1,1)=kmins
+  end do
+  kplus=m+1
+  kmins=m+1
+  k(1)=kplus
+  do i=1,m
+     kplus=kplus+1
+     kmins=kmins-1
+     k(2*i)=kplus
+     k(2*i+1)=kmins
+  end do
+  do ig=1,ng
+     istart=isign(ig/2,-mod(ig,2))
+     kplus=istart
+     kmins=istart
+     l(1)=istart
+     d(k(1))=e_0*istart**2
+     do i=1,m
+        i2=i*2
+        i2p1=i2+1
+        kplus=kplus+ng
+        kmins=kmins-ng
+        l(i2)=kplus
+        l(i2p1)=kmins
+        d(k(i2))=e_0*kplus**2
+        d(k(i2p1))=e_0*kmins**2
+     end do
+     do i=2,m2p1
+        e(i)=v2
+     end do
+     do i=1,m2p1
+        do j=1,m2p1
+           a(j,i)=0.d0
+        end do
+        a(i,i)=1.d0
+     end do
+     call tqli(d,e,m2p1,mm,a)
+     ishift=m2p1*(ig-1)
+     do i=1,m2p1
+        f(i+ishift)=d(i)
+        do j=1,m2p1
+           aux_cmf(l(j)+np1,i+ishift)=a(k(j),i)
+        end do
+     end do
+  end do
+  call indexx(n2p1,f,l)
+  do i=1,n2p1
+     d(i)=f(l(i))
+     do j=1,n2p1
+        a(j,i)=aux_cmf(iauxmf(j,1),l(i))
+     end do
+  end do
+
+  ! lowest np(it) one-particle levels -- start with zero pw 
+  do i=1,np(it)
+     e(i)=d(i)
+     iauxmf(i,1)=i
+     iauxmf(i,2)=1
+  end do
+  !                                  -- add pairs of pw 
+  iauxmf(0,2)=np(it)/2
+  iauxmf(0,1)=np(it)
+  do jpw=1,iauxmf(0,2)
+     epw=e_0*jpw**2 
+     do jmf=1,iauxmf(0,1)
+        etot=d(jmf)+epw 
+        do i=1,np(it)+1
+           iffind=0
+           if(etot.le.e(i))then
+              iffind=1
+              do j=np(it)+1,i+2,-1
+                 e(j)=e(j-2)
+                 iauxmf(j,1)=iauxmf(j-2,1)
+                 iauxmf(j,2)=iauxmf(j-2,2)
+              end do
+              e(i)=etot
+              e(i+1)=etot
+              iauxmf(i,1)=jmf
+              iauxmf(i+1,1)=jmf
+              iauxmf(i,2)=jpw*2
+              iauxmf(i+1,2)=iauxmf(i,2)+1
+              go to 1
+           endif
+        end do
+1       continue 
+        if(iffind.eq.0)go to 2
+     end do
+2    continue 
+  end do
+  ! stop if shell is unfilled
+  if(e(np(it)+1)-e(np(it)).lt.1.d-10)stop 'shell not filled'
+
+  ! number of needed mathieu functions and plane waves
+  iauxmf(0,1)=0
+  iauxmf(0,2)=0
+  do i=1,np(it)
+     iauxmf(0,1)=max0(iauxmf(0,1),iauxmf(i,1))
+     iauxmf(0,2)=max0(iauxmf(0,2),iauxmf(i,2))
+  end do
+
+  ! basis transf.
+  do i=1,iauxmf(0,1)
+     do j=2,n2p1,2
+        jp1=j+1
+        x=a(j,i)
+        a(j,i)=(a(j,i)-a(jp1,i))*sq2i
+        a(jp1,i)=(x+a(jp1,i))*sq2i
+     end do
+  end do
+  !     if(ng.ne.1)then
+  do i=3,iauxmf(0,1)
+     x=abs(d(i)-d(i-1))
+     if(x.lt.1.d-10)then
+        im1=i-1
+        do j=2,n2p1
+           x=a(j,i)
+           a(j,i)=(a(j,i)+a(j,im1))*sq2i
+           a(j,im1)=(x-a(j,im1))*sq2i
+        end do
+     endif
+  end do
+  !     endif
+
+  ! needed coefficients and pointers
+  ncmf(it,iinc)=0
+  lcmf(it,iinc)=0
+  do i=1,iauxmf(0,1)
+     jj=0
+     do j=1,n2p1
+        x=abs(a(j,i))
+        !           if(x.gt.0.00000001d0)then
+        if(x.gt.1.d-15.and.jj.lt.5)then
+           jj=jj+1
+           iaux_cmf(jj,i)=j
+           lcmf(it,iinc)=max0(lcmf(it,iinc),j)
+        endif
+     end do
+     ncmf(it,iinc)=max0(ncmf(it,iinc),jj)
+  end do
+  do i=1,iauxmf(0,1)
+     do j=1,lcmf(it,iinc)
+        if(iaux_cmf(j,i).ne.0) &
+             aux_cmf(j,i)=a(iaux_cmf(j,i),i)
+     end do
+  end do
+
+
+  ! check
+  jzero=0
+  zero=0.d0
+  x=sq2i
+  gx=tpiba*x
+  vx=veff(it,iinc)*cos(gx*ng)
+  f(1)=sq2i
+  do j=1,lcmf(it,iinc)/2
+     j2=j*2
+     j2p1=j2+1
+     gxj=gx*j
+     f(j2)=sin(gxj)
+     f(j2+1)=cos(gxj)
+  end do
+  do i=1,iauxmf(0,1)
+     fx=0.d0
+     ddf=0.d0
+     do j=1,lcmf(it,iinc)
+        gj2=(tpiba*(j/2))**2
+        fx=fx+a(j,i)*f(j)
+        ddf=ddf-a(j,i)*gj2*f(j)
+     end do
+     b=abs(-hbs2m(it)*ddf+(vx-d(i))*fx)
+     if(b.gt.zero)then
+        zero=b
+        jzero=i
+     endif
+  end do
+
+  ! write
+  q=2.d0*veff(it,iinc)/hbs2m(it)/qveff(it,iinc)**2
+  write (6,'(''m0      '',i10,/ &
+       &        ''m       '',i10,/ &
+       &        ''q       '',f14.3,/ &
+       &        ''veff    '',f14.3,/ &
+       &        ''ng      '',i10)')m0,m,q,veff(it,iinc),ng
+  write (6,'(/''configuration'')')
+  do i=1,np(it)
+     write (6,'(i10,i5)')iauxmf(i,1),iauxmf(i,2)
+  end do
+  x=e(np(it)+1)-e(np(it))
+  write (6,'(/''to next one particle level: '',e15.3,'' Ry'')')x
+  write (6,'(/''eigenvalues, pw energies'')')
+  do i=1,iauxmf(0,1)
+     x=e_0*(i/2)**2
+     write (6,'(i4,2f15.5)')i,d(i),x
+  end do
+  write (6,'(/''eigenvectors'')')
+  do i=1,iauxmf(0,1)
+     write (6,'(i4,''    ('',f10.5,'')'')')i,d(i)
+     write (6,'(f22.5)')a(1,i)
+     write (6,'(2f14.5)')(a(j,i),j=2,lcmf(it,iinc))
+  end do
+  write(6,*)'max error = ',zero
+  write(6,*)'index of mf with max error = ',jzero
+
+  do i=1,mcmf ! ncmf(it)
+     do j=1,mcmf ! ncmf(it)
+        cmf(j,i,it,iinc)=aux_cmf(j,i)
+        icmf(j,i,it,iinc)=iaux_cmf(j,i)
+     enddo
+  enddo
+  do i=0,mcmf ! np(it)
+     imf(i,1,it,iinc)=iauxmf(i,1)
+     imf(i,2,it,iinc)=iauxmf(i,2)
+  enddo
+
+  return
+end subroutine matcfs
+
+subroutine lcao_setup(word,ntable,iunit)
+  use ewald
+  integer  i,j,k,it,jt,lm,jsite,iw,ntable,iunit
+  real*8 v 
+  character*48 word(mword-1)
+  do i=1,mtypes
+     if(word(1).eq.typename(i))it=i
+  enddo
+  lcao(it)=lcao(it)+1
+  if(word(2).ne.'c')then
+     stop 'lcao_setup: second word .ne. c'
+  endif
+  iw=2
+1 do i=1,mstypes
+     if(word(iw+1).eq.stypename(i))jt=i
+  enddo
+  ps_dist(it,jt)=1
+  read(word(iw+2),*)jsite
+  nlcao(it,jsite)=nlcao(it,jsite)+1
+  j=nlcao(it,jsite)
+  ilcao(j,it,jsite)=lcao(it)
+  iw=iw+2
+  do k=1,10
+     call t_read(word(iw+1),i,ntable,iunit)
+     read(word(iw+2),*)v
+     read(word(iw+3),*)lm
+     nlmlcao(j,it,jsite)=nlmlcao(j,it,jsite)+1
+     ilcaotable(nlmlcao(j,it,jsite),j,it,jsite,iinc)=min(i,ntable)
+     lcaovalue(nlmlcao(j,it,jsite),j,it,jsite,iinc)=v
+     ilmlcao(nlmlcao(j,it,jsite),j,it,jsite)=lm
+     if(word(iw+4).eq.' ')return
+     if(word(iw+4).eq.'c')then
+        iw=iw+4
+        go to 1
+     else
+        iw=iw+3
+     endif
+  enddo
+end subroutine lcao_setup
+
+! not used for DEEP/OMP version
+subroutine xread(file,iunit,x,frst,lst,mdim,ndim,mytid)
+  ! read and broadcast positions
+!  use mpi
+  implicit none
+  integer i,j,frst,lst,ndim,mdim,iunit,mytid
+  real*8 x(mdim,lst)
+  character*48 file
+  if(mytid.eq.0)then
+     open(iunit,file=file,status='old')
+     do i=frst,lst
+        read(iunit,*)(x(j,i),j=1,ndim)
+     enddo
+     close(iunit)
+  endif
+  i=(lst-frst+1)*ndim
+!  call MPI_BCAST(x,i,MPI_REAL8,0,MPI_COMM_WORLD,j)
+  return
+end subroutine xread

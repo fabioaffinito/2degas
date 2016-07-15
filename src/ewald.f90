@@ -90,6 +90,8 @@
     real*8 :: n_r(mnp) ,n_byr(mnp) ,n_rvec(mdim,mnp) ,n_rem(mnp)
     integer :: n_ind(mnp) ,n_dist(mtypes,mstypes)
 
+!$omp threadprivate(ngrid,drt)
+
 ! indici delle tabelle etc
     real*8 :: ut(0:mgrid,4,mnt),ukt(0:mnk,mnkt),tail(mnt)
     integer :: iu2table(mtypes,mtypes,minc),iv2table(mtypes,mtypes,minc)
@@ -101,6 +103,8 @@
     integer :: ilcaotable(mao,morbit,mtypes,mns,minc)
     integer :: iexp(mnt),ipwave(mtypes),ibckf
     character(48) :: tablename(mnt),routinename(mnt)
+
+!$omp threadprivate(ut)
 
 ! fattore moltiplicativo per alcune tabelle
     real*8 :: v2value(mtypes,mtypes,minc)
@@ -146,6 +150,7 @@
     real*8 :: kvec(mdim,mnk),knorm2(mnk),gvec(mdim,mnk),gnorm2(mnk) &
     ,ktens(mdim,mdim,mnk),gtens(mdim,mdim,mnk)
     integer :: nk
+!$omp threadprivate(ktens)
 
 
 ! stack di configurazioni (mantenere l'ordine nel common per send/recv)

@@ -2067,6 +2067,7 @@
 
       subroutine two_body
       use ewald
+      use utils
       real*8 t,dt,ddt,ltf,g(mdim,mnp),h(mtypes)
       integer i,ijcount,it,jt,ip,jp,idim
       save ltf,g,h
@@ -2129,10 +2130,11 @@
        if(hbs2m(it).ne.0)h_new(it)=h_new(it)+h(it)
       enddo
       return
-      end
+      end subroutine two_body
 
       subroutine trial_function
       use ewald
+      use utils
       integer it,ip,idim
       real*8 w 
 ! initialize
@@ -2145,7 +2147,7 @@
       call three_body
       call slater_excitations(w)
       return
-      end
+      end subroutine trial_function
 
       subroutine bose_nosanow
 ! bose-nosanow sum_j site_j -- particle_i correlation
@@ -2179,6 +2181,7 @@
 
       subroutine site_particle_particle
       use ewald
+      use utils
       integer ip,jp,idim,ijcount,it,jt,j
       real*8 c(mns),dc(mdim,mnp,mns),ddc(mnp,mns)
       real*8 t,dt,ddt,aux1(mdim),aux2
@@ -3055,6 +3058,7 @@
 
       subroutine slater_pwave
       use ewald
+      use utils
       integer it,i,ip,j1,j2,jk,idim
       real*8 kr,ckr,skr,aux,x
       aux=0.d0
@@ -3120,6 +3124,7 @@
 
       subroutine potential
       use ewald
+      use utils
       integer it,ip,jt,jp,ijcount,idim,i,ik,ik1,ik2,iv2k
       real*8 f,p_aux(mtypes),p2(0:mtypes),qr,cqr,aux,v
       save p2
@@ -3260,6 +3265,7 @@
 ! compute distances and set up quantities needed to use lookup tables
 ! (here there is only the distance from the origin)
       use ewald
+      use utils
       integer idim,ip,jp,it,jt,ijcount,i,ik,ik2,ik1
       real*8 kr
       save
@@ -3405,6 +3411,7 @@
 
       subroutine averages(what,iblk,who,wate)
       use ewald
+      use utils
       use mpi
        implicit none 
       integer what,iblk,i,j,k,it,jt,jrc,kk,iunit
@@ -3569,6 +3576,7 @@
 
       subroutine restart(what,iblk,who)
       use ewald
+      use utils
       use mpi
        implicit none
       integer what,iblk,i,j,idim,ip,it,iunit,seed(8),seed_tot(8*mproc)
@@ -3594,13 +3602,7 @@
         enddo
        endif
 ! configurazioni
-!       if(mytid.lt.10)then
-!        write(sfix,'(i1)')mytid
-!       elseif(mytid.lt.100)then
-!        write(sfix,'(i2)')mytid
-!       elseif(mytid.lt.1000)then
-!        write(sfix,'(i3)')mytid
-!       endif
+
        write(sfix,'(i0)') mytid
        do it=1,ntypes
         i=index(x_file(it),' ')-1
@@ -3672,7 +3674,7 @@
       endif
       close(8)
       return
-      end
+      end subroutine restart
 
       subroutine normalizza_gofr(g,m,n)
       use ewald
@@ -3817,6 +3819,7 @@
 
       subroutine krlv(cut,a,ndim,mdim,gvect,mnk,ng,verbose)
 ! vettori del reticolo reciproco
+      use utils
       integer idim,jdim,ndim,mdim,ix(3),nx(3),nkspan(3),i,j &
              ,ng,mnk,npts,ipts,nzero,verbose
       real*8 a(mdim,ndim),arlv(3,3),vol,pi,tpiba &
@@ -4254,33 +4257,7 @@
              twom12*(l4))))
       return
       end
-      subroutine setrn(iseed)
-      common /rnyucm/ m(4),l(4),nbit,irnyuc
-      integer iseed(4)
-      ishft12(ii)=ii/4096
-      mask12(ii)=mod(ii,4096)
-      do 10 i=1,4
-   10 l(i)=mod(iseed(i),4096)
-      l(4)=2*(l(4)/2)+1
-!
-! shift everything to the left if not 48 bit
-!
-      if (nbit.lt.48) then
-         do 20 i=1,48-nbit
-         i1=l(1)*2
-         i2=l(2)*2
-         i3=l(3)*2
-         i4=l(4)*2
-         l(4)=mask12(i4)
-         i3=i3+ishft12(i4)
-         l(3)=mask12(i3)
-         i2=i2+ishft12(i3)
-         l(2)=mask12(i2)
-         l(1)=mask12(i1+ishft12(i2))
-   20    continue
-         endif
-      return
-      end
+
       subroutine savern(iseed)
       common /rnyucm/ m(4),l(4),nbit,irnyuc
       integer iseed(4)
@@ -4363,33 +4340,7 @@
              twom12*(l4))))
       return
       end
-      subroutine setrn2(iseed)
-      common /rnyucm2/ m(4),l(4),nbit,irnyuc
-      integer iseed(4)
-      ishft12(ii)=ii/4096
-      mask12(ii)=mod(ii,4096)
-      do 10 i=1,4
-   10 l(i)=mod(iseed(i),4096)
-      l(4)=2*(l(4)/2)+1
-!
-! shift everything to the left if not 48 bit
-!
-      if (nbit.lt.48) then
-         do 20 i=1,48-nbit
-         i1=l(1)*2
-         i2=l(2)*2
-         i3=l(3)*2
-         i4=l(4)*2
-         l(4)=mask12(i4)
-         i3=i3+ishft12(i4)
-         l(3)=mask12(i3)
-         i2=i2+ishft12(i3)
-         l(2)=mask12(i2)
-         l(1)=mask12(i1+ishft12(i2))
-   20    continue
-         endif
-      return
-      end
+
       subroutine savern2(iseed)
       common /rnyucm2/ m(4),l(4),nbit,irnyuc
       integer iseed(4)
@@ -4529,112 +4480,7 @@
       END
 
 
-      SUBROUTINE TQLI(D,E,N,NP,Z)
-      implicit real*8(a-h,o-z)
-      DIMENSION D(NP),E(NP),Z(NP,NP)
-      DO 11 I=2,N
-        E(I-1)=E(I)
-11    CONTINUE
-      E(N)=0.d0
-      DO 15 L=1,N
-        ITER=0
-1       DO 12 M=L,N-1
-          DD=ABS(D(M))+ABS(D(M+1))
-          IF (ABS(E(M))+DD.EQ.DD) GO TO 2
-12      CONTINUE
-        M=N
-2       IF(M.NE.L)THEN
-          IF(ITER.EQ.30)PAUSE 'too many iterations'
-          ITER=ITER+1
-          G=(D(L+1)-D(L))/(2.d0*E(L))
-          R=SQRT(G**2+1.d0)
-          G=D(M)-D(L)+E(L)/(G+SIGN(R,G))
-          S=1.d0
-          C=1.d0
-          P=0.d0
-          DO 14 I=M-1,L,-1
-            F=S*E(I)
-            B=C*E(I)
-            IF(ABS(F).GE.ABS(G))THEN
-              C=G/F
-              R=SQRT(C**2+1.d0)
-              E(I+1)=F*R
-              S=1.d0/R
-              C=C*S
-            ELSE
-              S=F/G
-              R=SQRT(S**2+1.d0)
-              E(I+1)=G*R
-              C=1.d0/R
-              S=S*C
-            ENDIF
-            G=D(I+1)-P
-            R=(D(I)-G)*S+2.d0*C*B
-            P=S*R
-            D(I+1)=G+P
-            G=C*R-B
-!     Omit lines from here ...
-            DO 13 K=1,N
-              F=Z(K,I+1)
-              Z(K,I+1)=S*Z(K,I)+C*F
-              Z(K,I)=C*Z(K,I)-S*F
-13          CONTINUE
-!     ... to here when finding only eigenvalues.
-14        CONTINUE
-          D(L)=D(L)-P
-          E(L)=G
-          E(M)=0.d0
-          GO TO 1
-        ENDIF
-15    CONTINUE
-      RETURN
-      END
 
-      SUBROUTINE INDEXX(N,ARRIN,INDX)
-      implicit real*8(a-h,o-z)
-! Indexes an array ARRIN of length N, i.e. outputs the array INDX 
-! such that ARRIN(INDX(J)) is in ascending order for J=1,2,...,N. 
-! The input quantities N and ARRIN are not changed.
-      DIMENSION ARRIN(N),INDX(N)
-      DO 11 J=1,N
-         INDX(J)=J
-11    CONTINUE
-      IF(N.EQ.1)RETURN
-      L=N/2+1
-      IR=N
-10    CONTINUE
-         IF(L.GT.1)THEN
-            L=L-1
-            INDXT=INDX(L)
-            Q=ARRIN(INDXT)
-         ELSE
-            INDXT=INDX(IR)
-            Q=ARRIN(INDXT)
-            INDX(IR)=INDX(1)
-            IR=IR-1
-            IF(IR.EQ.1)THEN
-               INDX(1)=INDXT
-               RETURN
-            ENDIF
-         ENDIF
-         I=L
-         J=L+L
-20       IF(J.LE.IR)THEN
-            IF(J.LT.IR)THEN
-               IF(ARRIN(INDX(J)).LT.ARRIN(INDX(J+1)))J=J+1
-            ENDIF
-            IF(Q.LT.ARRIN(INDX(J)))THEN
-               INDX(I)=INDX(J)
-               I=J
-               J=J+J
-            ELSE
-               J=IR+1
-            ENDIF
-            GO TO 20
-         ENDIF
-         INDX(I)=INDXT
-      GO TO 10
-      END
 
       subroutine matwf(ip,ipmat,it) ! x,o,do,ddo,n,it)
 ! variabili locali pw,dpw,ddpw dimensionate da zero
@@ -4907,6 +4753,7 @@
 
       subroutine slater_lcao
       use ewald
+      use utils
       integer i,j,k,it,jt,ip,jp,ijcount,idim,lm,iorb
       real*8 o,do(mdim),ddo,t,dt,ddt,y,dy(mdim),ddy,v
       ijcount=0
@@ -5009,6 +4856,7 @@
       end
 
       subroutine sto(r0,drt,i0,nt,f,df,stdin_flag,spline_flag)
+      use utils
       integer i,j,l,k,n,m,i0,nt,stdin_flag,spline_flag,m_parm,jp
       parameter(m_parm=20)
       real*8 r,r0,drt,f(0:nt),df(0:nt),p(m_parm),c,z,norm,factorial
@@ -8381,6 +8229,7 @@
 
       subroutine jastrow(i)
       use ewald
+      use utils
       integer i
       real*8 g_save(mdim,mnp),h_save(mtypes)
       save g_save,h_save

@@ -1,0 +1,5 @@
+check for private/public
+
+input.f90
+nproc,runid
+gnorm2, gvec

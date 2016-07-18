@@ -22,7 +22,7 @@ subroutine input
 
   data seed/0,0,0,1/
 
- !$OMP parallel default(private) shared(nproc,runid,restart_dir)
+ !$OMP parallel default(private) shared(nproc,runid,ndim,restart_dir)
   nproc=omp_get_num_threads()
   mytid=omp_get_thread_num()
 
@@ -30,7 +30,7 @@ subroutine input
 
   !!      if(mytid.eq.0)then
 
-  write(6,*)'nproc = ',nproc
+  write(6,*)'nthreads = ',nproc
   open(2,file='runid',status='old')
   read(2,'(a)')runid
   close(2)
@@ -556,9 +556,9 @@ subroutine input
 
   ! check single/private. esp sseed.  cmass
 
-!$omp end single copyprivate(ndim,v0,adrift,gstorto,wpiu,nodalaction,rejection,fullprop, &
-!$omp ecut,seed,nk,knorm2,kvec,ktens, & 
-!$omp irhok,igofr,pp_dist,ngrid_gofr_ratio, typename, np,hbs2m, x_file, &
+!$omp end single copyprivate(v0, &
+!$omp el,eli,nk,knorm2,kvec,ktens, & 
+!$omp irhok,pp_dist, ntypes,typename, np,hbs2m, x_file, &
 !$omp nk_ewald, ngrid, drt, ut, &   
 !$omp iv2table, tail, iexp, v2value, iu2table, iu3table, ibckf, iubtable, ntheta )
 
@@ -697,6 +697,7 @@ subroutine input
      j_prop_count(iname)=mgrid_gofr+1
      n_props=n_props+mgrid_gofr+1
   enddo
+
   ! # props in stack
   n_props_in_stack=n_props
   if(mytid.eq.0)write(6,*)'n_props_in_stack = ',n_props_in_stack
@@ -922,6 +923,8 @@ subroutine phonon(eps,ng)
 end subroutine phonon
 
 
+!
+!  Not used in DEEP/OMP version
 subroutine matcfs(it)
   ! lowest-energy configuration and the coefficients of mathieu functions
   ! [2d; eff.pot. v(x)=v*cos(ng*tpiba*x)]
@@ -1188,6 +1191,9 @@ subroutine matcfs(it)
   return
 end subroutine matcfs
 
+
+! Not used in DEEP input
+!
 subroutine lcao_setup(word,ntable,iunit)
   use ewald
   integer  i,j,k,it,jt,lm,jsite,iw,ntable,iunit

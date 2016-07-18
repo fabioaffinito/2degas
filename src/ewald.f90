@@ -72,6 +72,8 @@
     real*8 :: rhok(2*mnk,mtypes)
     integer :: irhok(mtypes),nrhok
     character(48) :: rhok_filename(mtypes)
+!$omp threadprivate(irhok,nrhok,rhok_filename)
+! check nrhok, rhok_filename
 
 
 ! gofr
@@ -90,7 +92,10 @@
     real*8 :: n_r(mnp) ,n_byr(mnp) ,n_rvec(mdim,mnp) ,n_rem(mnp)
     integer :: n_ind(mnp) ,n_dist(mtypes,mstypes)
 
-!$omp threadprivate(ngrid,drt)
+!$omp threadprivate(drt,drti,drti2, ngrid,pp_r,pp_byr,pp_rvec,pp_rem, &
+!$omp pp_ind,pp_dist, ps_r,ps_byr,ps_rvec,ps_rem, ps_ind, ps_dist, &
+!$omp n_r, n_byr, n_rvec, n_rem, n_ind, n_dist)
+
 
 ! indici delle tabelle etc
     real*8 :: ut(0:mgrid,4,mnt),ukt(0:mnk,mnkt),tail(mnt)
@@ -104,12 +109,15 @@
     integer :: iexp(mnt),ipwave(mtypes),ibckf
     character(48) :: tablename(mnt),routinename(mnt)
 
-!$omp threadprivate(ut)
+!$omp threadprivate(ut,iv2table,iexp,tail,iu2table,iu3table,ibckf,iubtable)
 
 ! fattore moltiplicativo per alcune tabelle
     real*8 :: v2value(mtypes,mtypes,minc)
     real*8 :: vpsvalue(mtypes,mstypes,minc)
     real*8 :: lcaovalue(mao,morbit,mtypes,mns,minc)
+
+!$omp threadprivate(v2value)
+! not used vpsvalue, lcaovalue
 
 
 ! info sulle particelle
@@ -117,6 +125,9 @@
     integer :: ndim,ntypes,nptot,npnorm
     integer :: np(mtypes),ipfrst(mtypes),iplst(mtypes)
     character(48) :: typename(mtypes)
+
+!$omp threadprivate(ntypes,typename, np,hbs2m,var,vari,nptot,npnorm,ipfrst,iplst)
+! ndim should be shared (also ntypes but doesnt work!)
 
 ! filenames per le posizioni delle particelle
     character(20) :: x_file(mtypes)
@@ -137,6 +148,7 @@
 
 ! lati della cella di simulazione e loro inversi
     real*8 :: el(mdim),eli(mdim)
+!$omp threadprivate(el,eli)
 
 
 ! orbitali per i determinanti di slater e loro derivate
@@ -150,7 +162,7 @@
     real*8 :: kvec(mdim,mnk),knorm2(mnk),gvec(mdim,mnk),gnorm2(mnk) &
     ,ktens(mdim,mdim,mnk),gtens(mdim,mdim,mnk)
     integer :: nk
-!$omp threadprivate(ktens)
+!$omp threadprivate(kvec,knorm2,gvec,gnorm2,ktens,gtens,nk)
 
 
 ! stack di configurazioni (mantenere l'ordine nel common per send/recv)
@@ -164,6 +176,7 @@
 ! costanti
     integer :: rejection,wpiu,gstorto,nodalaction,fullprop,ecut,icontour
     real*8 :: pi,adrift,value_ecut,v0,dx
+!$omp threadprivate (pi,v0,dx)
 
 ! orbital-dependent backflow
     integer :: nshll,ishll(mnk)
@@ -242,6 +255,7 @@
 
 ! ewald
     integer :: nk_ewald(mnt)
+!$omp threadprivate(nk_ewald)
 
 
 ! pezzi di funzione d'onda

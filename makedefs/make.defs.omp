@@ -1,13 +1,14 @@
-# make defs for Galileo
-F90=mpif90
+# make defs for OMP Galileo
+#
+F90=ifort
 BLAS_INTERNAL=
 EXE=rept90-omp.x
 #
 # other fpp flags include -DDEBUG
 #FPP=-fpp -DBLAS_INTERNAL -DDEBUG
 FPP=-fpp
-#F90FLAGS= -O3 -g
-F90FLAGS= -O3 -g -openmp
+
+F90FLAGS= -O0 -g -qopenmp
 
 ifdef BLAS_INTERNAL
    EXE=rept90-int.x

@@ -22,9 +22,10 @@ subroutine input
 
   data seed/0,0,0,1/
 
- !$OMP parallel default(private) shared(nproc,runid,ndim,restart_dir)
+!!$OMP parallel default(private) shared(nproc,runid,ndim,restart_dir)
   nproc=omp_get_num_threads()
   mytid=omp_get_thread_num()
+  print *,'input mytid=',mytid
 
  !$OMP single 
 
@@ -760,7 +761,7 @@ subroutine input
      endif
   endif
 
-!$omp end parallel
+!!$omp end parallel
   return
 end subroutine input
 

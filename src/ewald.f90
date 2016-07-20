@@ -126,7 +126,7 @@
     integer :: np(mtypes),ipfrst(mtypes),iplst(mtypes)
     character(48) :: typename(mtypes)
 
-!$omp threadprivate(ntypes,typename, np,hbs2m,var,vari,nptot,npnorm,ipfrst,iplst)
+!$omp threadprivate(ntypes, typename, np,hbs2m,var,vari,nptot,npnorm,ipfrst,iplst)
 ! ndim should be shared (also ntypes but doesnt work!)
 
 ! filenames per le posizioni delle particelle
@@ -264,6 +264,7 @@
 
 ! mpi
     integer :: mytid,nproc
+!$OMP threadprivate(mytid)
 
 
 ! restart

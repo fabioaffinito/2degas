@@ -1709,34 +1709,34 @@ end subroutine normalizza_gofr
       end
 
       subroutine savern(iseed)
-      common /rnyucm/ m(4),l(4),nbit,irnyuc
-      integer iseed(4)
-      do 10 i=1,4
-      iseed(i)=l(i)
-   10 continue
-!
-! shift everything to the right if not 48 bit
-!
-      if (nbit.lt.48) then
-         do 20 i=1,48-nbit
-         i1=iseed(1)/2
-         ir=iseed(1)-i1*2
-         iseed(2)=iseed(2)+4096*ir
-         i2=iseed(2)/2
-         ir=iseed(2)-i2*2
-         iseed(3)=iseed(3)+4096*ir
-         i3=iseed(3)/2
-         ir=iseed(3)-i3*2
-         iseed(4)=iseed(4)+4096*ir
-         i4=iseed(4)/2
-         iseed(1)=i1
-         iseed(2)=i2
-         iseed(3)=i3
-         iseed(4)=i4
-   20    continue
-         endif
-      return
-      end
+        common /rnyucm/ m(4),l(4),nbit,irnyuc
+        integer iseed(4)
+        do 10 i=1,4
+           iseed(i)=l(i)
+10         continue
+           !
+           ! shift everything to the right if not 48 bit
+           !
+           if (nbit.lt.48) then
+              do 20 i=1,48-nbit
+                 i1=iseed(1)/2
+                 ir=iseed(1)-i1*2
+                 iseed(2)=iseed(2)+4096*ir
+                 i2=iseed(2)/2
+                 ir=iseed(2)-i2*2
+                 iseed(3)=iseed(3)+4096*ir
+                 i3=iseed(3)/2
+                 ir=iseed(3)-i3*2
+                 iseed(4)=iseed(4)+4096*ir
+                 i4=iseed(4)/2
+                 iseed(1)=i1
+                 iseed(2)=i2
+                 iseed(3)=i3
+                 iseed(4)=i4
+20               continue
+              endif
+              return
+            end subroutine savern
 
       block data randat
       common /rnyucm/ m(4),l(4),nbit,irnyuc

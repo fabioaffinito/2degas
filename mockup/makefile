@@ -3,17 +3,24 @@
 #
 
 FC=ifort
-SRC=ewald.f90 utils.f90 input.f90 mockup.f90
-OBJ=ewald.o utils.o input.o mockup.o
-
+SRCDIR=../src
+SRC=ewald.f90 utils.f90 input.f90 mockup.f90 sonaseppia.f90
+OBJ=ewald.o utils.o input.o mockup.o sonaseppia.o
+FLAGS=-O0 -g
 
 
 mockup:$(OBJ)
-	$(FC) -qopenmp -o $@ $(OBJ)
+	$(FC) $(FLAGS) -qopenmp -o $@ $(OBJ)
 
-%.o:%.f90
-	$(FC) -c -qopenmp $<
+mockup.o:mockup.f90
+	 $(FC) $(FLAGS) -c -qopenmp -o $@ $<
 
-.PHONY:clean
-	rm -f *.o *.mod
+sonaseppia.o:sonaseppia.f90
+	 $(FC) $(FLAGS) -c -qopenmp -o $@ $<
+
+%.o:$(SRCDIR)/%.f90
+	$(FC) $(FLAGS) -c -qopenmp -o $@ $<
+
+clean:
+	rm -f *.o *.mod mockup
 

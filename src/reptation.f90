@@ -1376,6 +1376,7 @@ end subroutine normalizza_gofr
            enddo
            ! legge
         elseif(what.eq.0)then
+           !$omp single
            if(mytid.eq.0)then
               write(*,*)'restart ',who
               read(8,*)iblk0
@@ -1389,13 +1390,15 @@ end subroutine normalizza_gofr
               enddo
               if(ntheta.ne.0)read(8,*) ith,jth
            endif
+           ! check ith,jth,and *esp* seed_tot
            etrial=cml_av(jetot)/cml_norm
-           call MPI_BCAST(etrial,1,MPI_REAL8  ,0,MPI_COMM_WORLD,j)
-           call MPI_BCAST(iblk0 ,1,MPI_INTEGER,0,MPI_COMM_WORLD,j)
-           call MPI_BCAST(ith,1,MPI_INTEGER,0,MPI_COMM_WORLD,j)
-           call MPI_BCAST(jth,1,MPI_INTEGER,0,MPI_COMM_WORLD,j)
-           call MPI_SCATTER(seed_tot,8,MPI_INTEGER,seed,8,MPI_INTEGER &
-                ,0,MPI_COMM_WORLD,j)
+           !$omp end single copyprivate(iblk0,cml_norm,cml_av,cml2,seed_tot,ith,jth,etrial)           
+           !call MPI_BCAST(etrial,1,MPI_REAL8  ,0,MPI_COMM_WORLD,j)
+           !call MPI_BCAST(iblk0 ,1,MPI_INTEGER,0,MPI_COMM_WORLD,j)
+           !call MPI_BCAST(ith,1,MPI_INTEGER,0,MPI_COMM_WORLD,j)
+           !call MPI_BCAST(jth,1,MPI_INTEGER,0,MPI_COMM_WORLD,j)
+           !call MPI_SCATTER(seed_tot,8,MPI_INTEGER,seed,8,MPI_INTEGER &
+           !     ,0,MPI_COMM_WORLD,j)
            call setrn(seed)
            call setrn2(seed(5))
         endif

@@ -53,10 +53,12 @@
 ! vecchia configurazione
     real*8 :: x_old(mdim,mnp),g_old(mdim,mnp),h_old(mtypes)
     real*8 :: p_old(m_props),s_old
+!$omp threadprivate(x_old,g_old,h_old,p_old,s_old)
 
 ! nuova configurazione
     real*8 :: x_new(mdim,mnp),g_new(mdim,mnp),h_new(mtypes)
     real*8 :: p_new(m_props),s_new
+!$omp threadprivate(x_new,g_new,h_new,p_new,s_new)
 
 
 ! medie
@@ -66,6 +68,12 @@
     ,jcmass_z,jitc,j_prop_start(mname),j_prop_count(mname) &
     ,n_props,n_props_in_stack,n_scalar_props,iname,jexcite
     character(20) :: name(mname)
+
+ !$omp threadprivate ( cml_av,cml2,cml_norm, & 
+            jetot,jltf,jacc,jpot,jkin,je2,jgg, &
+            jun,jefp,jgofr,jrhok,jmstar,jcmass_p,jcmass_d, &
+            jcmass_z,jitc,j_prop_start,j_prop_count, &
+            n_props,n_props_in_stack,n_scalar_props,iname,jexcite,name )
 
 
 ! rhok
@@ -131,6 +139,7 @@
 
 ! filenames per le posizioni delle particelle
     character(20) :: x_file(mtypes)
+!$omp threadprivate(x_file)
 
 
 ! siti
@@ -172,6 +181,8 @@
     real*8 :: p_stack(m_props_in_stack,mstack,minc)
     real*8 :: age_stack(mstack),w_stack(mstack,5)
 
+!$omp threadprivate(getnext, putnext, nstack, x_stack, g_stack, h_stack, s_stack, p_stack, age_stack, w_stack)
+
 
 ! costanti
     integer :: rejection,wpiu,gstorto,nodalaction,fullprop,ecut,icontour
@@ -186,14 +197,17 @@
 ! branching
     real*8 :: elocal,etrial,alpha,mult_ave,mult_ave2,mult_norm
     integer :: nconf,ntarget,max_nconf,min_nconf,mmult,nmult,mmstep
+!$omp  threadprivate (elocal,etrial,alpha,mult_ave,mult_ave2,mult_norm,&
+                      nconf,ntarget,max_nconf,min_nconf,mmult,nmult,mmstep) 
 
 ! age; age_r per le mosse di reptation; nsg
     real*8 :: age,nage,mage,nage_r,mage_r,nsg
-
+!$omp threadprivate(age,nage,mage,nage_r,mage_r,nsg)
 
 ! rmc
     real*8 :: p_p_new(m_props),p_p_old(m_props),acc(-1:1),att(-1:1)
     integer :: idir,jfirst,jlast,kfirst,klast,n_buffer,ndelta
+!$omp threadprivate(p_p_new,p_p_old,acc,att, idir,jfirst,jlast,kfirst,klast,n_buffer,ndelta)
 
 
 ! indici di vari pezzi del propagatore
@@ -205,6 +219,8 @@
     ,derwpiu(mder),dergstorto(mder),dercyrus(mder)
     character(48) :: der_filename(mder),inc_type(minc),inc_name(minc)
     character(7) :: dername(mder)
+!$omp threadprivate(inc,deradrift,iinc,ninc, nder,der_nskip,jinc, jder, derwpiu,dergstorto,dercyrus, &
+    der_filename, inc_type, inc_name, dername)
 
 
 ! resample
@@ -269,6 +285,7 @@
 
 ! restart
     character(10) :: res_string
+!$omp threadprivate(res_string)
 
 
 ! twist average
@@ -285,7 +302,10 @@
     integer :: n_props_exc
     character(50) :: excite_filename
 
-   character(20) :: restart_dir
 !  restart directory for restart files
+!  omp shared
+   character(20) :: restart_dir
+   
+
 
     end module ewald

@@ -1,13 +1,13 @@
-      program main
-      use mpi
-      use ewald
-      integer jrc
-      call MPI_INIT(jrc)
-      call MPI_COMM_SIZE(MPI_COMM_WORLD,nproc,jrc)
-      call MPI_COMM_RANK(MPI_COMM_WORLD,mytid,jrc)
-      call input
-      call sonaseppia
-      call MPI_FINALIZE(jrc)
-      stop
-      end
+program  mockup
+use ewald, only: nproc, runid, ndim, restart_dir
+implicit none
 
+!$OMP parallel default(private) shared(nproc,runid,ndim,restart_dir)
+
+call input
+call sonaseppia
+
+!$OMP end parallel
+
+
+end program mockup

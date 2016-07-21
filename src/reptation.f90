@@ -169,7 +169,8 @@ end subroutine sonaseppia
 
 subroutine sigma
   ! variances of gaussian moves
-  use ewald
+  use ewald, only : ntypes, hbs2m, var, delta, vari
+  implicit none
   integer it
   do it=1,ntypes
      if(hbs2m(it).ne.0.d0)then
@@ -184,54 +185,56 @@ subroutine sigma
 end subroutine sigma
 
 
-      subroutine vmc
-        use ewald
-        integer iblk,istp,nitc0,ncmass0,nmstar0
-        real*8 p,uno,rannyu
-        uno=1.d0
-        if(ncmass.ne.0)then
-           ncmass0=ncmass
-           ncmass=0      
-        endif
-        if(nmstar.ne.0)then
-           nmstar0=nmstar
-           nmstar=0      
-        endif
-        if(nitc.ne.0)then
-           nitc0=nitc
-           nitc=0      
-        endif
-        call read_conf
-        call getconf
+subroutine vmc
+  use ewald, only : ncmass, nmstar, nitc, iblk0, nblk, alg, nstp, nskip, &
+                    der_nskip, nstack, ntheta, res_string
+  implicit none
+  integer iblk,istp,nitc0,ncmass0,nmstar0
+  real*8 p,uno,rannyu
+  uno=1.d0
+  if(ncmass.ne.0)then
+     ncmass0=ncmass
+     ncmass=0      
+  endif
+  if(nmstar.ne.0)then
+     nmstar0=nmstar
+     nmstar=0      
+  endif
+  if(nitc.ne.0)then
+     nitc0=nitc
+     nitc=0      
+  endif
+  call read_conf
+  call getconf 
 
-! MAIN LOOP 
-        do iblk=iblk0,nblk                            ! loop on blocks
-           call averages(1,iblk,alg,uno)          ! reset averages
-           do istp=1,nstp                           ! loop on MC steps
-              call move(p)                            ! move particles; compute props
-              call metropolis_test(p)                 ! accept/reject
-              if(mod(istp,nskip).eq.0)then
-                 call putconf(1)
-              endif
-              if(der_nskip.ne.0.and.mod(istp,der_nskip).eq.1) &
-                   call compute_vmcder
-              call averages(2,iblk,alg,uno)         ! update averages
-           enddo                                    ! step finished
-           call averages(3,iblk,alg,uno)          ! write averages
-           !      if(mytid.eq.0)call flush(6)
-        enddo
-! END MAIN LOOP
-
-        if(nstack.eq.0)then
+  ! MAIN LOOP 
+  do iblk=iblk0,nblk                            ! loop on blocks
+     call averages(1,iblk,alg,uno)          ! reset averages
+     do istp=1,nstp                           ! loop on MC steps
+        call move(p)                            ! move particles; compute props
+        call metropolis_test(p)                 ! accept/reject
+        if(mod(istp,nskip).eq.0)then
            call putconf(1)
         endif
-        call write_conf
-        if(nitc.ne.0)nitc=nitc0
-        if(ncmass.ne.0)ncmass=ncmass0
-        if(nmstar.ne.0)nmstar=nmstar0
-        if(ntheta.ne.0.and.res_string.ne.'.')iblk0=1 
-        return
-      end subroutine vmc
+        if(der_nskip.ne.0.and.mod(istp,der_nskip).eq.1) &
+             call compute_vmcder
+        call averages(2,iblk,alg,uno)         ! update averages
+     enddo                                    ! step finished
+     call averages(3,iblk,alg,uno)          ! write averages
+     !      if(mytid.eq.0)call flush(6)
+  enddo
+  ! END MAIN LOOP
+
+  if(nstack.eq.0)then
+     call putconf(1)
+  endif
+  call write_conf
+  if(nitc.ne.0)nitc=nitc0
+  if(ncmass.ne.0)ncmass=ncmass0
+  if(nmstar.ne.0)nmstar=nmstar0
+  if(ntheta.ne.0.and.res_string.ne.'.')iblk0=1 
+  return
+end subroutine vmc
 
       subroutine compute_vmcder
       use ewald
@@ -306,128 +309,129 @@ end subroutine sigma
 
  
       subroutine prov_dest(i,j)
-      use ewald
-      integer ip,idim,iprov,irec,i,j
-      iprov=mod((getnext+i-2),mstack)+1
-      irec=mod((getnext+j-2),mstack)+1
-      do ip=1,nptot
-       do idim=1,ndim
-        x_stack(idim,ip,irec)=x_stack(idim,ip,iprov)
-       enddo
-      enddo
-      do ip=1,nptot
-       do idim=1,ndim
-        g_stack(idim,ip,irec,iinc)=g_stack(idim,ip,iprov,iinc)
-       enddo
-      enddo
-      do ip=1,ntypes
-       h_stack(ip,irec)=h_stack(ip,iprov)
-      enddo
-      do ip=1,n_props_in_stack
-       p_stack(ip,irec,iinc)=p_stack(ip,iprov,iinc)
-      enddo
-      s_stack(irec)=s_stack(iprov)
-      age_stack(irec)=age_stack(iprov)
-      return
-      end
-
+        use ewald
+        integer ip,idim,iprov,irec,i,j
+        iprov=mod((getnext+i-2),mstack)+1
+        irec=mod((getnext+j-2),mstack)+1
+        do ip=1,nptot
+           do idim=1,ndim
+              x_stack(idim,ip,irec)=x_stack(idim,ip,iprov)
+           enddo
+        enddo
+        do ip=1,nptot
+           do idim=1,ndim
+              g_stack(idim,ip,irec,iinc)=g_stack(idim,ip,iprov,iinc)
+           enddo
+        enddo
+        do ip=1,ntypes
+           h_stack(ip,irec)=h_stack(ip,iprov)
+        enddo
+        do ip=1,n_props_in_stack
+           p_stack(ip,irec,iinc)=p_stack(ip,iprov,iinc)
+        enddo
+        s_stack(irec)=s_stack(iprov)
+        age_stack(irec)=age_stack(iprov)
+        return
+      end subroutine prov_dest
 
 
 
       subroutine getconf
-! get a configuration from the stack
-      use ewald
-      integer it,ip,idim
-      if(nstack.eq.0)stop 'stack empty'
-! get next configuration
-      do it=1,ntypes
-       if(hbs2m(it).ne.0.d0)then
-        do ip=ipfrst(it),iplst(it)
-         do idim=1,ndim
-          x_old(idim,ip)=x_stack(idim,ip,getnext)
-         enddo
+        ! get a configuration from the stack
+        use ewald, only : nstack, ntypes, hbs2m, ipfrst, iplst, ndim, x_old, x_stack, &
+                          getnext, g_old, g_stack, iinc, h_old, h_stack, n_props_in_stack, &
+                          p_old, p_stack, s_old, age, age_stack, mstack, nstack, s_stack
+        implicit none
+        integer it,ip,idim
+        if(nstack.eq.0)stop 'stack empty'
+        ! get next configuration
+        do it=1,ntypes
+           if(hbs2m(it).ne.0.d0)then
+              do ip=ipfrst(it),iplst(it)
+                 do idim=1,ndim
+                    x_old(idim,ip)=x_stack(idim,ip,getnext)
+                 enddo
+              enddo
+           endif
         enddo
-       endif
-      enddo
-      do it=1,ntypes
-       if(hbs2m(it).ne.0.d0)then
-        do ip=ipfrst(it),iplst(it)
-         do idim=1,ndim
-          g_old(idim,ip)=g_stack(idim,ip,getnext,iinc)
-         enddo
+        do it=1,ntypes
+           if(hbs2m(it).ne.0.d0)then
+              do ip=ipfrst(it),iplst(it)
+                 do idim=1,ndim
+                    g_old(idim,ip)=g_stack(idim,ip,getnext,iinc)
+                 enddo
+              enddo
+           endif
         enddo
-       endif
-      enddo
-      do it=1,ntypes
-       if(hbs2m(it).ne.0.d0)h_old(it)=h_stack(it,getnext)
-      enddo
-      do ip=1,n_props_in_stack
-       p_old(ip)=p_stack(ip,getnext,iinc)
-      enddo
-      s_old=s_stack(getnext)
-      age=age_stack(getnext)
-! update getnext
-      getnext=mod(getnext,mstack)+1
-! update nstack
-      nstack=nstack-1
-      return
-      end
+        do it=1,ntypes
+           if(hbs2m(it).ne.0.d0)h_old(it)=h_stack(it,getnext)
+        enddo
+        do ip=1,n_props_in_stack
+           p_old(ip)=p_stack(ip,getnext,iinc)
+        enddo
+        s_old=s_stack(getnext)
+        age=age_stack(getnext)
+        ! update getnext
+        getnext=mod(getnext,mstack)+1
+        ! update nstack
+        nstack=nstack-1
+        return
+      end subroutine getconf
 
       subroutine putconf(n)
-! put a configuration in the stack
-      use ewald
-      integer it,ip,idim,i,n
-      do i=1,n
-       if(putnext.eq.getnext.and.nstack.ne.0)then
-        stop 'okkio: stack full'
-       endif
-       do it=1,ntypes
-        if(hbs2m(it).ne.0.d0)then
-         do ip=ipfrst(it),iplst(it)
-          do idim=1,ndim
-           x_stack(idim,ip,putnext)=x_old(idim,ip)
-          enddo
-         enddo
-        endif
-       enddo
-       do it=1,ntypes
-        if(hbs2m(it).ne.0.d0)then
-         do ip=ipfrst(it),iplst(it)
-          do idim=1,ndim
-           g_stack(idim,ip,putnext,iinc)=g_old(idim,ip)
-          enddo
-         enddo
-        endif
-       enddo
-       do it=1,ntypes
-        if(hbs2m(it).ne.0.d0)h_stack(it,putnext)=h_old(it)
-       enddo
-       do ip=1,n_props_in_stack
-        p_stack(ip,putnext,iinc)=p_old(ip)
-       enddo
-       s_stack(putnext)=s_old
-       age_stack(putnext)=age
-! update counters
-       putnext=mod(putnext,mstack)+1
-       nstack=nstack+1
-       nconf=nstack
-      enddo
-      return
-      end
+        ! put a configuration in the stack
+        use ewald, only : nstack, ntypes, hbs2m, ipfrst, iplst, ndim, x_old, x_stack, &
+             putnext,getnext, g_old, g_stack, iinc, h_old, h_stack, n_props_in_stack, &
+             p_old, p_stack, s_old, age, age_stack, mstack, nstack, s_stack, nconf
+        implicit none
+        integer it,ip,idim,i,n
+        do i=1,n
+           if(putnext.eq.getnext.and.nstack.ne.0)then
+              stop 'okkio: stack full'
+           endif
+           do it=1,ntypes
+              if(hbs2m(it).ne.0.d0)then
+                 do ip=ipfrst(it),iplst(it)
+                    do idim=1,ndim
+                       x_stack(idim,ip,putnext)=x_old(idim,ip)
+                    enddo
+                 enddo
+              endif
+           enddo
+           do it=1,ntypes
+              if(hbs2m(it).ne.0.d0)then
+                 do ip=ipfrst(it),iplst(it)
+                    do idim=1,ndim
+                       g_stack(idim,ip,putnext,iinc)=g_old(idim,ip)
+                    enddo
+                 enddo
+              endif
+           enddo
+           do it=1,ntypes
+              if(hbs2m(it).ne.0.d0)h_stack(it,putnext)=h_old(it)
+           enddo
+           do ip=1,n_props_in_stack
+              p_stack(ip,putnext,iinc)=p_old(ip)
+           enddo
+           s_stack(putnext)=s_old
+           age_stack(putnext)=age
+           ! update counters
+           putnext=mod(putnext,mstack)+1
+           nstack=nstack+1
+           nconf=nstack
+        enddo
+        return
+      end subroutine putconf
 
       subroutine read_conf
 ! read coordinates from file, compute properties and store in the stack
-      use ewald
+      use ewald, only : mytid, getnext, putnext, ntypes, x_file, res_string, restart_dir, &
+                        ntarget, jetot, jltf, ipfrst, iplst, x_new, ndim, p_new, p_old
+      implicit none
       integer it,iunit,i,j,ip,idim
       real*8 p
       character(6):: sfix
-!      if(mytid.lt.10)then
-!       write(sfix,'(i1)')mytid
-!      elseif(mytid.lt.100)then
-!       write(sfix,'(i2)')mytid
-!      elseif(mytid.lt.1000)then
-!       write(sfix,'(i3)')mytid
-!      endif
+
       write(sfix,'(i0)') mytid
 ! initialize counters
       getnext=1
@@ -465,41 +469,37 @@ end subroutine sigma
        close(iunit)
       enddo
       return
-      end
+      end subroutine read_conf
 
       subroutine write_conf
-! get all the configurations from the stack and write coordinates on file
-      use ewald
-      integer it,i,ip,idim,iunit
-      character(6):: sfix
-!      if(mytid.lt.10)then
-!       write(sfix,'(i1)')mytid
-!      elseif(mytid.lt.100)then
-!       write(sfix,'(i2)')mytid
-!      elseif(mytid.lt.1000)then
-!       write(sfix,'(i3)')mytid
-!      endif
-      write(sfix,'(i0)') mytid
-      do it=1,ntypes
-       i=index(x_file(it),' ')-1
-       iunit=30+it-1
-       open(iunit,file=trim(restart_dir)//x_file(it)(1:i)//'.'//sfix,status='unknown')
-      enddo
-      do i=1,nstack
-       call getconf
-       do it=1,ntypes
-        iunit=30+it-1
-        do ip=ipfrst(it),iplst(it)
-         write(iunit,*)(x_old(idim,ip),idim=1,ndim)
+        ! get all the configurations from the stack and write coordinates on file
+        use ewald, only: mytid, ntypes, x_file, restart_dir, nstack, ipfrst, iplst, x_old, ndim
+        implicit none
+
+        integer it,i,ip,idim,iunit
+        character(6):: sfix
+
+        write(sfix,'(i0)') mytid
+        do it=1,ntypes
+           i=index(x_file(it),' ')-1
+           iunit=30+it-1
+           open(iunit,file=trim(restart_dir)//x_file(it)(1:i)//'.'//sfix,status='unknown')
         enddo
-       enddo
-      enddo
-      do it=1,ntypes
-       iunit=30+it-1
-       close(iunit)
-      enddo
-      return
-      end
+        do i=1,nstack
+           call getconf
+           do it=1,ntypes
+              iunit=30+it-1
+              do ip=ipfrst(it),iplst(it)
+                 write(iunit,*)(x_old(idim,ip),idim=1,ndim)
+              enddo
+           enddo
+        enddo
+        do it=1,ntypes
+           iunit=30+it-1
+           close(iunit)
+        enddo
+        return
+      end subroutine write_conf
 
 
       subroutine testd
@@ -779,11 +779,6 @@ end subroutine sigma
       call slater_excitations(w)
       return
       end subroutine trial_function
-
-
-
-
-
 
 
 subroutine normalizza_gofr(g,m,n)
@@ -1121,169 +1116,180 @@ end subroutine normalizza_gofr
 
 ! used in DEEP
       subroutine averages(what,iblk,who,wate)
-      use ewald
-      use utils
-      use mpi
-       implicit none 
-      integer what,iblk,i,j,k,it,jt,jrc,kk,iunit
-      real*8 blk_av(m_props),blk_norm,tot_av(m_props),tot_norm,err,wate
-      character*3 who
-      character*7 string
-      save blk_av,blk_norm
-      if(what.eq.1)then
-! reset cumulative averages if iblk=1
-       if(iblk.eq.1)then
-        call r_set(n_props,cml_av,0.d0)
-        call r_set(n_props,cml2,0.d0)
-        cml_norm=0.d0
-        if(who.eq.'rmc')age=0
-       endif
-! reset block averages
-       call r_set(n_props,blk_av,0.d0)
-       blk_norm=0.d0
-       if(who.eq.'dmc')then
-        max_nconf=0
-        min_nconf=10000000
-        nage=0
-       endif
-      elseif(what.eq.2)then
-! update block averages
-       do i=1,n_props
-        blk_av(i)=blk_av(i)+p_old(i)*wate
-       enddo
-       blk_norm=blk_norm+wate
-      elseif(what.eq.3)then
-! compute and write cumulative averages and estimated errors
-       call MPI_REDUCE(blk_av,tot_av,n_props,MPI_REAL8,MPI_SUM &
-                      ,0,MPI_COMM_WORLD,j)
-       call MPI_REDUCE(blk_norm,tot_norm,1,MPI_REAL8,MPI_SUM &
-                      ,0,MPI_COMM_WORLD,j)
-       if(mytid.eq.0)then
-        blk_norm=tot_norm
-        do i=1,n_props
-         blk_av(i)=tot_av(i)
-        enddo
-        call normalizza_gofr(blk_av(jgofr),mgrid_gofr,ngofr)
-        do i=1,n_props
-         cml_av(i)=cml_av(i)+blk_av(i)
-         cml2(i)=cml2(i)+blk_av(i)**2/blk_norm
-        enddo
-        cml_norm=cml_norm+blk_norm
-        if(who.eq.'vmc')then
-         write(6,*)'===>> vmc block ',iblk
-        elseif(who.eq.'der')then
-         write(6,*)'===>> rmcder block ',iblk
-        elseif(who.eq.'dmc')then
-         etrial=cml_av(jetot)/cml_norm
-         write(6,*)'===>> dmc block ',iblk &
-                  ,' nconf = ',nconf &
-                  ,' mnnc, mxnc = ',min_nconf,max_nconf &
-                  ,' nage = ',nage
-        elseif(who.eq.'rmc')then
-         write(6,*)'===>> rmc block ',iblk
+        use ewald, only : n_props, cml_av, cml2, cml_norm, age, max_nconf, min_nconf, nage, &
+             mytid, mgrid_gofr,ngofr, nconf, nrhok, m_props, nk, rhok_filename,&
+             jgofr, der_filename, jmstar, nmstar, ntau, ntauskip, imstar_tau_skip, &
+             mstar_filename, jcmass_z, ncmass, typename, ndim, cmass_z_filename, &
+             jcmass_d,ncmass,ncm_ntauskip, icmass_tau_skip, cmass_filename, &
+             jexcite, alg, n_props_exc, excite_filename, &
+             jitc, nitc, itc_prop_count, itc_tau_skip, itc_filename, &
+             etrial, p_old, jetot,n_scalar_props,name, jrhok, gofr_filename, jder, nder, &
+             dername, cm_ntauskip 
+        use utils
+        use mpi
+        implicit none 
+        integer what,iblk,i,j,k,it,jt,jrc,kk,iunit
+        real*8 blk_av(m_props),blk_norm,tot_av(m_props),tot_norm,err,wate
+        character*3 who
+        character*7 string
+        save blk_av,blk_norm
+        if(what.eq.1)then
+           ! reset cumulative averages if iblk=1
+           if(iblk.eq.1)then
+              call r_set(n_props,cml_av,0.d0)
+              call r_set(n_props,cml2,0.d0)
+              cml_norm=0.d0
+              if(who.eq.'rmc')age=0
+           endif
+           ! reset block averages
+           call r_set(n_props,blk_av,0.d0)
+           blk_norm=0.d0
+           if(who.eq.'dmc')then
+              max_nconf=0
+              min_nconf=10000000
+              nage=0
+           endif
+        elseif(what.eq.2)then
+           ! update block averages
+           do i=1,n_props
+              blk_av(i)=blk_av(i)+p_old(i)*wate
+           enddo
+           blk_norm=blk_norm+wate
+        elseif(what.eq.3)then
+           ! compute and write cumulative averages and estimated errors
+           call MPI_REDUCE(blk_av,tot_av,n_props,MPI_REAL8,MPI_SUM &
+                ,0,MPI_COMM_WORLD,j)
+           call MPI_REDUCE(blk_norm,tot_norm,1,MPI_REAL8,MPI_SUM &
+                ,0,MPI_COMM_WORLD,j)
+!$omp single 
+!          if(mytid.eq.0)then
+              blk_norm=tot_norm
+              do i=1,n_props
+                 blk_av(i)=tot_av(i)
+              enddo
+              call normalizza_gofr(blk_av(jgofr),mgrid_gofr,ngofr)
+              do i=1,n_props
+                 cml_av(i)=cml_av(i)+blk_av(i)
+                 cml2(i)=cml2(i)+blk_av(i)**2/blk_norm
+              enddo
+              cml_norm=cml_norm+blk_norm
+              if(who.eq.'vmc')then
+                 write(6,*)'===>> vmc block ',iblk
+              elseif(who.eq.'der')then
+                 write(6,*)'===>> rmcder block ',iblk
+              elseif(who.eq.'dmc')then
+                 etrial=cml_av(jetot)/cml_norm
+                 write(6,*)'===>> dmc block ',iblk &
+                      ,' nconf = ',nconf &
+                      ,' mnnc, mxnc = ',min_nconf,max_nconf &
+                      ,' nage = ',nage
+              elseif(who.eq.'rmc')then
+                 write(6,*)'===>> rmc block ',iblk
+              endif
+              do i=1,n_scalar_props
+                 if(iblk.gt.1)then
+                    err=sqrt(abs((cml2(i)/cml_norm-(cml_av(i)/cml_norm)**2) &
+                         /(iblk-1)))
+                 else
+                    err=0.d0
+                 endif
+                 write(6,'(2e19.11,e9.2,e10.3,2x,a20)')blk_av(i)/blk_norm &
+                      ,cml_av(i)/cml_norm &
+                      ,err,blk_norm,name(i)
+              enddo
+              ! files for non-scalar averages
+              iunit=50
+              ! rhok
+              i=jrhok
+              iunit=iunit+1
+              do j=1,nrhok
+                 string=' '
+                 call write_nonscalar_props(m_props,i,2*nk,iblk,cml_av &
+                      ,cml2,cml_norm,blk_av,blk_norm,rhok_filename(j),iunit,0,0 &
+                      ,string)
+              enddo
+              ! gofr
+              i=jgofr
+              iunit=iunit+1
+              do j=1,ngofr
+                 string=' '
+                 call write_nonscalar_props(m_props,i,mgrid_gofr+1,iblk,cml_av &
+                      ,cml2,cml_norm,blk_av,blk_norm,gofr_filename(j),iunit,0,0 &
+                      ,string)
+              enddo
+              ! derivate
+              i=jder
+              iunit=iunit+1
+              do j=1,nder
+                 string=dername(j)
+                 k=10
+                 call write_nonscalar_props(m_props,i,k,iblk,cml_av &
+                      ,cml2,cml_norm,blk_av,blk_norm,der_filename(j),iunit,0,1 &
+                      ,string)
+              enddo
+              ! mstar
+              i=jmstar
+              iunit=iunit+1
+              do j=1,nmstar
+                 string=' '
+                 k=(ntau-2*ntauskip)/imstar_tau_skip(j)
+                 call write_nonscalar_props(m_props,i,k,iblk,cml_av &
+                      ,cml2,cml_norm,blk_av,blk_norm,mstar_filename(j),iunit,0,0 &
+                      ,string)
+              enddo
+              ! cmass z
+              i=jcmass_z
+              iunit=iunit+1
+              do j=1,ncmass
+                 string=typename(j)
+                 k=2*ndim
+                 call write_nonscalar_props(m_props,i,k,iblk,cml_av &
+                      ,cml2,cml_norm,blk_av,blk_norm,cmass_z_filename(j),iunit,1 &
+                      ,0,string)
+              enddo
+              ! cmass diffusion
+              i=jcmass_d
+              iunit=iunit+1
+              do j=1,ncmass
+                 string=' '
+                 kk=0
+                 do k=1,ncm_ntauskip
+                    kk=kk+(ntau-2*cm_ntauskip(k,j))/icmass_tau_skip(j)
+                 enddo
+                 call write_nonscalar_props(m_props,i,kk,iblk,cml_av &
+                      ,cml2,cml_norm,blk_av,blk_norm,cmass_filename(j),iunit,0,0 &
+                      ,string)
+              enddo
+              ! excite
+              i=jexcite
+              iunit=iunit+1
+              if(alg.eq.'exc')then
+                 string=' '
+                 k=n_props_exc
+                 call write_nonscalar_props(m_props,i,k,iblk,cml_av &
+                      ,cml2,cml_norm,blk_av,blk_norm,excite_filename,iunit,1,0 &
+                      ,string)
+              endif
+              ! itc
+              i=jitc
+              iunit=iunit+1
+              do j=1,nitc
+                 string=' '
+                 k=itc_prop_count(j)*(ntau-2*ntauskip)/itc_tau_skip(j)
+                 call write_nonscalar_props(m_props,i,k,iblk,cml_av &
+                      ,cml2,cml_norm,blk_av,blk_norm,itc_filename(j),iunit,0,0 &
+                      ,string)
+              enddo
+!           endif
+!$omp end single copyprivate(etrial)
+!           if(who.eq.'dmc') &
+!                call MPI_BCAST(etrial,1,MPI_REAL8,0,MPI_COMM_WORLD,jrc)
+           ! res
+           call restart(1,iblk,who)
         endif
-        do i=1,n_scalar_props
-         if(iblk.gt.1)then
-          err=sqrt(abs((cml2(i)/cml_norm-(cml_av(i)/cml_norm)**2) &
-             /(iblk-1)))
-         else
-          err=0.d0
-         endif
-         write(6,'(2e19.11,e9.2,e10.3,2x,a20)')blk_av(i)/blk_norm &
-                                        ,cml_av(i)/cml_norm &
-                                        ,err,blk_norm,name(i)
-        enddo
-! files for non-scalar averages
-        iunit=50
-! rhok
-        i=jrhok
-        iunit=iunit+1
-        do j=1,nrhok
-         string=' '
-         call write_nonscalar_props(m_props,i,2*nk,iblk,cml_av &
-             ,cml2,cml_norm,blk_av,blk_norm,rhok_filename(j),iunit,0,0 &
-             ,string)
-        enddo
-! gofr
-        i=jgofr
-        iunit=iunit+1
-        do j=1,ngofr
-         string=' '
-         call write_nonscalar_props(m_props,i,mgrid_gofr+1,iblk,cml_av &
-             ,cml2,cml_norm,blk_av,blk_norm,gofr_filename(j),iunit,0,0 &
-             ,string)
-        enddo
-! derivate
-        i=jder
-        iunit=iunit+1
-        do j=1,nder
-         string=dername(j)
-         k=10
-         call write_nonscalar_props(m_props,i,k,iblk,cml_av &
-             ,cml2,cml_norm,blk_av,blk_norm,der_filename(j),iunit,0,1 &
-             ,string)
-        enddo
-! mstar
-        i=jmstar
-        iunit=iunit+1
-        do j=1,nmstar
-         string=' '
-         k=(ntau-2*ntauskip)/imstar_tau_skip(j)
-         call write_nonscalar_props(m_props,i,k,iblk,cml_av &
-             ,cml2,cml_norm,blk_av,blk_norm,mstar_filename(j),iunit,0,0 &
-             ,string)
-        enddo
-! cmass z
-        i=jcmass_z
-        iunit=iunit+1
-        do j=1,ncmass
-         string=typename(j)
-         k=2*ndim
-         call write_nonscalar_props(m_props,i,k,iblk,cml_av &
-             ,cml2,cml_norm,blk_av,blk_norm,cmass_z_filename(j),iunit,1 &
-             ,0,string)
-        enddo
-! cmass diffusion
-        i=jcmass_d
-        iunit=iunit+1
-        do j=1,ncmass
-         string=' '
-         kk=0
-         do k=1,ncm_ntauskip
-          kk=kk+(ntau-2*cm_ntauskip(k,j))/icmass_tau_skip(j)
-         enddo
-         call write_nonscalar_props(m_props,i,kk,iblk,cml_av &
-             ,cml2,cml_norm,blk_av,blk_norm,cmass_filename(j),iunit,0,0 &
-             ,string)
-        enddo
-! excite
-        i=jexcite
-        iunit=iunit+1
-        if(alg.eq.'exc')then
-         string=' '
-         k=n_props_exc
-         call write_nonscalar_props(m_props,i,k,iblk,cml_av &
-             ,cml2,cml_norm,blk_av,blk_norm,excite_filename,iunit,1,0 &
-             ,string)
-        endif
-! itc
-        i=jitc
-        iunit=iunit+1
-        do j=1,nitc
-         string=' '
-         k=itc_prop_count(j)*(ntau-2*ntauskip)/itc_tau_skip(j)
-         call write_nonscalar_props(m_props,i,k,iblk,cml_av &
-             ,cml2,cml_norm,blk_av,blk_norm,itc_filename(j),iunit,0,0 &
-             ,string)
-        enddo
-       endif
-       if(who.eq.'dmc') &
-       call MPI_BCAST(etrial,1,MPI_REAL8,0,MPI_COMM_WORLD,jrc)
-! res
-       call restart(1,iblk,who)
-      endif
-      return
-      end
+
+        return
+      end subroutine averages
 
       subroutine restart(what,iblk,who)
       use ewald

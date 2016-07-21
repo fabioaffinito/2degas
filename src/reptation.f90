@@ -47,7 +47,7 @@ subroutine sonaseppia
 
 
   do k=1,nwords
-     word(:)=wordlist(j,:) 
+     word(:)=wordlist(k,:) 
      ! restart
      if(word(1).eq.'restart')then
         res_string='.res.'       ! dice a read_conf di leggere .res.
@@ -1308,25 +1308,29 @@ end subroutine normalizza_gofr
         !      if(mytid.eq.0) &
 
         ! -- need to think about this --
-        !$omp single
-        open(8,file=runid(1:index(runid,' ')-1)//'.res',status='unknown')
-        !$omp end single
+
         ! scrive
+
         if(what.eq.1)then
            call savern(seed)
            call savern2(seed(5))
+
+           !$omp single       
+           open(8,file=runid(1:index(runid,' ')-1)//'.res',status='unknown')
            call MPI_GATHER(seed,8,MPI_INTEGER,seed_tot,8,MPI_INTEGER &
                 ,0,MPI_COMM_WORLD,j)
-           if(mytid.eq.0)then
-              write(8,*)iblk,' ',who
-              write(8,*)cml_norm
-              do i=1,n_props
-                 write(8,*)cml_av(i),cml2(i)
-              enddo
-              do i=1,nproc
-                 write(8,*)(seed_tot(j),j=8*(i-1)+1,8*(i-1)+8)
-              enddo
-           endif   ! if mytid.eq.0
+           !if(mytid.eq.0)then
+           write(8,*)iblk,' ',who
+           write(8,*)cml_norm
+           do i=1,n_props
+              write(8,*)cml_av(i),cml2(i)
+           enddo
+           do i=1,nproc
+              write(8,*)(seed_tot(j),j=8*(i-1)+1,8*(i-1)+8)
+           enddo
+           !endif   ! if mytid.eq.0
+           close(8)
+           !$omp end single copyprivate(seed_tot)
 
            ! configurazioni
 
@@ -1374,25 +1378,29 @@ end subroutine normalizza_gofr
               iunit=30+it-1
               close(iunit)
            enddo
+
            ! legge
         elseif(what.eq.0)then
+
            !$omp single
-           if(mytid.eq.0)then
-              write(*,*)'restart ',who
-              read(8,*)iblk0
-              iblk0=mod(iblk0,nblk)+1
-              read(8,*)cml_norm
-              do i=1,n_props
-                 read(8,*)cml_av(i),cml2(i)
-              enddo
-              do i=1,nproc
-                 read(8,*)(seed_tot(j),j=8*(i-1)+1,8*(i-1)+8)
-              enddo
-              if(ntheta.ne.0)read(8,*) ith,jth
-           endif
-           ! check ith,jth,and *esp* seed_tot
+           open(8,file=runid(1:index(runid,' ')-1)//'.res',status='old')
+           !if(mytid.eq.0)then
+           write(*,*)'restart ',who
+           read(8,*)iblk0
+           iblk0=mod(iblk0,nblk)+1
+           read(8,*)cml_norm
+           do i=1,n_props
+              read(8,*)cml_av(i),cml2(i)
+           enddo
+           do i=1,nproc
+              read(8,*)(seed_tot(j),j=8*(i-1)+1,8*(i-1)+8)
+           enddo
+           if(ntheta.ne.0)read(8,*) ith,jth
+           !endif
+           ! check ith,jth,and *esp* seed_tot (need to understand mpi_scatter)
            etrial=cml_av(jetot)/cml_norm
-           !$omp end single copyprivate(iblk0,cml_norm,cml_av,cml2,seed_tot,ith,jth,etrial)           
+           close(8)
+           !$omp end single copyprivate(iblk0,cml_norm,cml_av,cml2,seed_tot,ith,jth,etrial) 
            !call MPI_BCAST(etrial,1,MPI_REAL8  ,0,MPI_COMM_WORLD,j)
            !call MPI_BCAST(iblk0 ,1,MPI_INTEGER,0,MPI_COMM_WORLD,j)
            !call MPI_BCAST(ith,1,MPI_INTEGER,0,MPI_COMM_WORLD,j)
@@ -1402,7 +1410,7 @@ end subroutine normalizza_gofr
            call setrn(seed)
            call setrn2(seed(5))
         endif
-        close(8)
+
         return
       end subroutine restart
 

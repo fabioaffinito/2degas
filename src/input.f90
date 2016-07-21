@@ -565,6 +565,7 @@ subroutine input
 
 !-- end read n26.sy ----
 
+
   nptot=0                         ! total # of particles
   npnorm=0                        ! total # of moving particles
   do it=1,ntypes

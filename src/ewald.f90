@@ -69,11 +69,11 @@
     ,n_props,n_props_in_stack,n_scalar_props,iname,jexcite
     character(20) :: name(mname)
 
- !$omp threadprivate ( cml_av,cml2,cml_norm, & 
-            jetot,jltf,jacc,jpot,jkin,je2,jgg, &
-            jun,jefp,jgofr,jrhok,jmstar,jcmass_p,jcmass_d, &
-            jcmass_z,jitc,j_prop_start,j_prop_count, &
-            n_props,n_props_in_stack,n_scalar_props,iname,jexcite,name )
+!$omp threadprivate ( cml_av,cml2,cml_norm,  &
+!$omp            jetot,jltf,jacc,jpot,jkin,je2,jgg, & 
+!$omp            jun,jefp,jgofr,jrhok,jmstar,jcmass_p,jcmass_d, & 
+!$omp            jcmass_z,jitc,j_prop_start,j_prop_count, &
+!$omp            n_props,n_props_in_stack,n_scalar_props,iname,jexcite,name )
 
 
 ! rhok
@@ -290,6 +290,7 @@
 
 ! twist average
     integer :: ntheta,ith,jth
+!$omp threadprivate(ntheta,ith,jth)
 
 
 ! Fixed phase

@@ -1291,106 +1291,116 @@ end subroutine normalizza_gofr
         return
       end subroutine averages
 
-      subroutine restart(what,iblk,who)
-      use ewald
-      use utils
-      use mpi
-       implicit none
-      integer what,iblk,i,j,idim,ip,it,iunit,seed(8),seed_tot(8*mproc)
-      character(6)::sfix
-      character(3)::who
-      save
-      if(mytid.eq.0) &
-      open(8,file=runid(1:index(runid,' ')-1)//'.res',status='unknown')
-! scrive
-      if(what.eq.1)then
-       call savern(seed)
-       call savern2(seed(5))
-       call MPI_GATHER(seed,8,MPI_INTEGER,seed_tot,8,MPI_INTEGER &
-                                           ,0,MPI_COMM_WORLD,j)
-       if(mytid.eq.0)then
-        write(8,*)iblk,' ',who
-        write(8,*)cml_norm
-        do i=1,n_props
-         write(8,*)cml_av(i),cml2(i)
-        enddo
-        do i=1,nproc
-         write(8,*)(seed_tot(j),j=8*(i-1)+1,8*(i-1)+8)
-        enddo
-       endif
-! configurazioni
 
-       write(sfix,'(i0)') mytid
-       do it=1,ntypes
-        i=index(x_file(it),' ')-1
-        iunit=30+it-1
-        open(iunit,file=trim(restart_dir)//x_file(it)(1:i)//'.res.'//sfix,status='unknown')
-       enddo
-! x_old per il vmc
-       if(who.eq.'vmc')then
-        do it=1,ntypes
-         iunit=30+it-1
-         do ip=ipfrst(it),iplst(it)
-          write(iunit,*)(x_old(idim,ip),idim=1,ndim)
-         enddo
-        enddo
-! x_stack da jfirst a jlast per rmc
-       elseif(who.eq.'rmc')then
-        do it=1,ntypes
-         iunit=30+it-1
-         do i=1,ntau
-          j=mod(jfirst-1+i-1,n_buffer)+1
-          do ip=ipfrst(it),iplst(it)
-           write(iunit,*)(x_stack(idim,ip,j),idim=1,ndim)
-          enddo
-         enddo
-        enddo
-! x_stack da getnext a getnext+nstack-1 per dmc
-       elseif(who.eq.'dmc')then
-        do it=1,ntypes
-         iunit=30+it-1
-         do i=1,nstack
-          j=mod(getnext-1+i-1,mstack)+1
-          do ip=ipfrst(it),iplst(it)
-           write(iunit,*)(x_stack(idim,ip,j),idim=1,ndim)
-          enddo
-         enddo
-        enddo
-       endif
-! twist average       
-       if(ntheta.ne.0)write(8,*) ith,jth 
-! close
-       do it=1,ntypes
-        iunit=30+it-1
-        close(iunit)
-       enddo
-! legge
-      elseif(what.eq.0)then
-       if(mytid.eq.0)then
-        write(*,*)'restart ',who
-        read(8,*)iblk0
-        iblk0=mod(iblk0,nblk)+1
-        read(8,*)cml_norm
-        do i=1,n_props
-         read(8,*)cml_av(i),cml2(i)
-        enddo
-        do i=1,nproc
-         read(8,*)(seed_tot(j),j=8*(i-1)+1,8*(i-1)+8)
-        enddo
-        if(ntheta.ne.0)read(8,*) ith,jth
-       endif
-       etrial=cml_av(jetot)/cml_norm
-       call MPI_BCAST(etrial,1,MPI_REAL8  ,0,MPI_COMM_WORLD,j)
-       call MPI_BCAST(iblk0 ,1,MPI_INTEGER,0,MPI_COMM_WORLD,j)
-       call MPI_BCAST(ith,1,MPI_INTEGER,0,MPI_COMM_WORLD,j)
-       call MPI_BCAST(jth,1,MPI_INTEGER,0,MPI_COMM_WORLD,j)
-       call MPI_SCATTER(seed_tot,8,MPI_INTEGER,seed,8,MPI_INTEGER &
-                                          ,0,MPI_COMM_WORLD,j)
-       call setrn(seed)
-       call setrn2(seed(5))
-      endif
-      close(8)
-      return
+
+      subroutine restart(what,iblk,who)
+        use ewald, only : mytid,runid, cml_norm, n_props, cml_av, cml2, &
+             nproc, ntypes, x_file, restart_dir, ipfrst, iplst, x_old, ndim, &
+             ntau, jfirst, n_buffer, x_stack, nstack, getnext, mstack, ntheta, &
+             ith, jth, iblk0, nblk, etrial, jetot, mproc
+        use utils
+        use mpi
+        implicit none
+        integer what,iblk,i,j,idim,ip,it,iunit,seed(8),seed_tot(8*mproc)
+        character(6)::sfix
+        character(3)::who
+        save
+        !      if(mytid.eq.0) &
+
+        ! -- need to think about this --
+        !$omp single
+        open(8,file=runid(1:index(runid,' ')-1)//'.res',status='unknown')
+        !$omp end single
+        ! scrive
+        if(what.eq.1)then
+           call savern(seed)
+           call savern2(seed(5))
+           call MPI_GATHER(seed,8,MPI_INTEGER,seed_tot,8,MPI_INTEGER &
+                ,0,MPI_COMM_WORLD,j)
+           if(mytid.eq.0)then
+              write(8,*)iblk,' ',who
+              write(8,*)cml_norm
+              do i=1,n_props
+                 write(8,*)cml_av(i),cml2(i)
+              enddo
+              do i=1,nproc
+                 write(8,*)(seed_tot(j),j=8*(i-1)+1,8*(i-1)+8)
+              enddo
+           endif   ! if mytid.eq.0
+
+           ! configurazioni
+
+           write(sfix,'(i0)') mytid
+           do it=1,ntypes
+              i=index(x_file(it),' ')-1
+              iunit=30+it-1
+              open(iunit,file=trim(restart_dir)//x_file(it)(1:i)//'.res.'//sfix,status='unknown')
+           enddo
+           ! x_old per il vmc
+           if(who.eq.'vmc')then
+              do it=1,ntypes
+                 iunit=30+it-1
+                 do ip=ipfrst(it),iplst(it)
+                    write(iunit,*)(x_old(idim,ip),idim=1,ndim)
+                 enddo
+              enddo
+              ! x_stack da jfirst a jlast per rmc
+           elseif(who.eq.'rmc')then
+              do it=1,ntypes
+                 iunit=30+it-1
+                 do i=1,ntau
+                    j=mod(jfirst-1+i-1,n_buffer)+1
+                    do ip=ipfrst(it),iplst(it)
+                       write(iunit,*)(x_stack(idim,ip,j),idim=1,ndim)
+                    enddo
+                 enddo
+              enddo
+              ! x_stack da getnext a getnext+nstack-1 per dmc
+           elseif(who.eq.'dmc')then
+              do it=1,ntypes
+                 iunit=30+it-1
+                 do i=1,nstack
+                    j=mod(getnext-1+i-1,mstack)+1
+                    do ip=ipfrst(it),iplst(it)
+                       write(iunit,*)(x_stack(idim,ip,j),idim=1,ndim)
+                    enddo
+                 enddo
+              enddo
+           endif
+           ! twist average       
+           if(ntheta.ne.0)write(8,*) ith,jth 
+           ! close
+           do it=1,ntypes
+              iunit=30+it-1
+              close(iunit)
+           enddo
+           ! legge
+        elseif(what.eq.0)then
+           if(mytid.eq.0)then
+              write(*,*)'restart ',who
+              read(8,*)iblk0
+              iblk0=mod(iblk0,nblk)+1
+              read(8,*)cml_norm
+              do i=1,n_props
+                 read(8,*)cml_av(i),cml2(i)
+              enddo
+              do i=1,nproc
+                 read(8,*)(seed_tot(j),j=8*(i-1)+1,8*(i-1)+8)
+              enddo
+              if(ntheta.ne.0)read(8,*) ith,jth
+           endif
+           etrial=cml_av(jetot)/cml_norm
+           call MPI_BCAST(etrial,1,MPI_REAL8  ,0,MPI_COMM_WORLD,j)
+           call MPI_BCAST(iblk0 ,1,MPI_INTEGER,0,MPI_COMM_WORLD,j)
+           call MPI_BCAST(ith,1,MPI_INTEGER,0,MPI_COMM_WORLD,j)
+           call MPI_BCAST(jth,1,MPI_INTEGER,0,MPI_COMM_WORLD,j)
+           call MPI_SCATTER(seed_tot,8,MPI_INTEGER,seed,8,MPI_INTEGER &
+                ,0,MPI_COMM_WORLD,j)
+           call setrn(seed)
+           call setrn2(seed(5))
+        endif
+        close(8)
+        return
       end subroutine restart
 
 

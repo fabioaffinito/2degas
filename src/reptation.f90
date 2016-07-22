@@ -187,7 +187,7 @@ end subroutine sigma
 
 subroutine vmc
   use ewald, only : ncmass, nmstar, nitc, iblk0, nblk, alg, nstp, nskip, &
-                    der_nskip, nstack, ntheta, res_string
+       der_nskip, nstack, ntheta, res_string
   implicit none
   integer iblk,istp,nitc0,ncmass0,nmstar0
   real*8 p,uno,rannyu
@@ -236,270 +236,271 @@ subroutine vmc
   return
 end subroutine vmc
 
-      subroutine compute_vmcder
-      use ewald
-      integer uno,zero,it,ip,idim,k,ider,iinc1,iinc2,iinc3,iinc4
-      real*8 lnp(minc+1),elo(minc+1),e,de,dlnp,d2e,d2lnp
-      if(nder.eq.0)return
-      uno=1
-      zero=0
-! elocal and lnp at all increments
-      do iinc=1,ninc
-       if(iinc.eq.1)then
+
+subroutine compute_vmcder
+  use ewald
+  integer uno,zero,it,ip,idim,k,ider,iinc1,iinc2,iinc3,iinc4
+  real*8 lnp(minc+1),elo(minc+1),e,de,dlnp,d2e,d2lnp
+  if(nder.eq.0)return
+  uno=1
+  zero=0
+  ! elocal and lnp at all increments
+  do iinc=1,ninc
+     if(iinc.eq.1)then
         update_two_body=1
         call compute_properties(uno) ! zero)
         p_old(jetot)=p_new(jetot)
-       else
+     else
         update_two_body=0
         call compute_properties(uno)
-       endif
-       elo(iinc)=p_new(jetot)*npnorm
-       lnp(iinc)=-2.d0*p_new(jltf )
-      enddo
-! derivate
-      k=jder
-      do ider=1,nder
-!
-       iinc1=jinc(ider,1)
-       iinc2=jinc(ider,2)
-       iinc3=jinc(ider,3)
-       iinc4=jinc(ider,4)
+     endif
+     elo(iinc)=p_new(jetot)*npnorm
+     lnp(iinc)=-2.d0*p_new(jltf )
+  enddo
+  ! derivate
+  k=jder
+  do ider=1,nder
+     !
+     iinc1=jinc(ider,1)
+     iinc2=jinc(ider,2)
+     iinc3=jinc(ider,3)
+     iinc4=jinc(ider,4)
 
-       e=       elo(1)
-       de=     ( elo(iinc4)-8.d0*elo(iinc2) &
-                +8.d0*elo(iinc1)-elo(iinc3)) &
-                    /(12.d0*inc(iinc1))
-       dlnp=   ( lnp(iinc4)-8.d0*lnp(iinc2) &
-                +8.d0*lnp(iinc1)-lnp(iinc3)) &
-                    /(12.d0*inc(iinc1))
-       d2e=    (-elo(iinc4)+16.d0*elo(iinc2) &
-                      -30.d0*elo(1) &
-                +16.d0*elo(iinc1)-elo(iinc3)) &
-                    /(12.d0*inc(iinc1)**2)
-       d2lnp=  (-lnp(iinc4)+16.d0*lnp(iinc2) &
-                      -30.d0*lnp(1) &
-                +16.d0*lnp(iinc1)-lnp(iinc3)) &
-                    /(12.d0*inc(iinc1)**2)
+     e=       elo(1)
+     de=     ( elo(iinc4)-8.d0*elo(iinc2) &
+          +8.d0*elo(iinc1)-elo(iinc3)) &
+          /(12.d0*inc(iinc1))
+     dlnp=   ( lnp(iinc4)-8.d0*lnp(iinc2) &
+          +8.d0*lnp(iinc1)-lnp(iinc3)) &
+          /(12.d0*inc(iinc1))
+     d2e=    (-elo(iinc4)+16.d0*elo(iinc2) &
+          -30.d0*elo(1) &
+          +16.d0*elo(iinc1)-elo(iinc3)) &
+          /(12.d0*inc(iinc1)**2)
+     d2lnp=  (-lnp(iinc4)+16.d0*lnp(iinc2) &
+          -30.d0*lnp(1) &
+          +16.d0*lnp(iinc1)-lnp(iinc3)) &
+          /(12.d0*inc(iinc1)**2)
 
-       p_old(k)=e
-       k=k+1
-       p_old(k)=de
-       k=k+1
-       p_old(k)=dlnp
-       k=k+1
-       p_old(k)=e*dlnp
-       k=k+1
-       p_old(k)=d2e
-       k=k+1
-       p_old(k)=de*dlnp
-       k=k+1
-       p_old(k)=e*d2lnp
-       k=k+1
-       p_old(k)=d2lnp
-       k=k+1
-       p_old(k)=e*dlnp**2
-       k=k+1
-       p_old(k)=dlnp**2
-       k=k+1
-      enddo
-      iinc=1
-      return
-      end
+     p_old(k)=e
+     k=k+1
+     p_old(k)=de
+     k=k+1
+     p_old(k)=dlnp
+     k=k+1
+     p_old(k)=e*dlnp
+     k=k+1
+     p_old(k)=d2e
+     k=k+1
+     p_old(k)=de*dlnp
+     k=k+1
+     p_old(k)=e*d2lnp
+     k=k+1
+     p_old(k)=d2lnp
+     k=k+1
+     p_old(k)=e*dlnp**2
+     k=k+1
+     p_old(k)=dlnp**2
+     k=k+1
+  enddo
+  iinc=1
+  return
+end subroutine compute_vmcder
 
 
- 
-      subroutine prov_dest(i,j)
-        use ewald
-        integer ip,idim,iprov,irec,i,j
-        iprov=mod((getnext+i-2),mstack)+1
-        irec=mod((getnext+j-2),mstack)+1
-        do ip=1,nptot
+
+subroutine prov_dest(i,j)
+  use ewald
+  integer ip,idim,iprov,irec,i,j
+  iprov=mod((getnext+i-2),mstack)+1
+  irec=mod((getnext+j-2),mstack)+1
+  do ip=1,nptot
+     do idim=1,ndim
+        x_stack(idim,ip,irec)=x_stack(idim,ip,iprov)
+     enddo
+  enddo
+  do ip=1,nptot
+     do idim=1,ndim
+        g_stack(idim,ip,irec,iinc)=g_stack(idim,ip,iprov,iinc)
+     enddo
+  enddo
+  do ip=1,ntypes
+     h_stack(ip,irec)=h_stack(ip,iprov)
+  enddo
+  do ip=1,n_props_in_stack
+     p_stack(ip,irec,iinc)=p_stack(ip,iprov,iinc)
+  enddo
+  s_stack(irec)=s_stack(iprov)
+  age_stack(irec)=age_stack(iprov)
+  return
+end subroutine prov_dest
+
+
+
+subroutine getconf
+  ! get a configuration from the stack
+  use ewald, only : nstack, ntypes, hbs2m, ipfrst, iplst, ndim, x_old, x_stack, &
+       getnext, g_old, g_stack, iinc, h_old, h_stack, n_props_in_stack, &
+       p_old, p_stack, s_old, age, age_stack, mstack, nstack, s_stack
+  implicit none
+  integer it,ip,idim
+  if(nstack.eq.0)stop 'stack empty'
+  ! get next configuration
+  do it=1,ntypes
+     if(hbs2m(it).ne.0.d0)then
+        do ip=ipfrst(it),iplst(it)
            do idim=1,ndim
-              x_stack(idim,ip,irec)=x_stack(idim,ip,iprov)
+              x_old(idim,ip)=x_stack(idim,ip,getnext)
            enddo
         enddo
-        do ip=1,nptot
+     endif
+  enddo
+  do it=1,ntypes
+     if(hbs2m(it).ne.0.d0)then
+        do ip=ipfrst(it),iplst(it)
            do idim=1,ndim
-              g_stack(idim,ip,irec,iinc)=g_stack(idim,ip,iprov,iinc)
+              g_old(idim,ip)=g_stack(idim,ip,getnext,iinc)
            enddo
         enddo
-        do ip=1,ntypes
-           h_stack(ip,irec)=h_stack(ip,iprov)
-        enddo
-        do ip=1,n_props_in_stack
-           p_stack(ip,irec,iinc)=p_stack(ip,iprov,iinc)
-        enddo
-        s_stack(irec)=s_stack(iprov)
-        age_stack(irec)=age_stack(iprov)
-        return
-      end subroutine prov_dest
+     endif
+  enddo
+  do it=1,ntypes
+     if(hbs2m(it).ne.0.d0)h_old(it)=h_stack(it,getnext)
+  enddo
+  do ip=1,n_props_in_stack
+     p_old(ip)=p_stack(ip,getnext,iinc)
+  enddo
+  s_old=s_stack(getnext)
+  age=age_stack(getnext)
+  ! update getnext
+  getnext=mod(getnext,mstack)+1
+  ! update nstack
+  nstack=nstack-1
+  return
+end subroutine getconf
 
-
-
-      subroutine getconf
-        ! get a configuration from the stack
-        use ewald, only : nstack, ntypes, hbs2m, ipfrst, iplst, ndim, x_old, x_stack, &
-                          getnext, g_old, g_stack, iinc, h_old, h_stack, n_props_in_stack, &
-                          p_old, p_stack, s_old, age, age_stack, mstack, nstack, s_stack
-        implicit none
-        integer it,ip,idim
-        if(nstack.eq.0)stop 'stack empty'
-        ! get next configuration
-        do it=1,ntypes
-           if(hbs2m(it).ne.0.d0)then
-              do ip=ipfrst(it),iplst(it)
-                 do idim=1,ndim
-                    x_old(idim,ip)=x_stack(idim,ip,getnext)
-                 enddo
+subroutine putconf(n)
+  ! put a configuration in the stack
+  use ewald, only : nstack, ntypes, hbs2m, ipfrst, iplst, ndim, x_old, x_stack, &
+       putnext,getnext, g_old, g_stack, iinc, h_old, h_stack, n_props_in_stack, &
+       p_old, p_stack, s_old, age, age_stack, mstack, nstack, s_stack, nconf
+  implicit none
+  integer it,ip,idim,i,n
+  do i=1,n
+     if(putnext.eq.getnext.and.nstack.ne.0)then
+        stop 'okkio: stack full'
+     endif
+     do it=1,ntypes
+        if(hbs2m(it).ne.0.d0)then
+           do ip=ipfrst(it),iplst(it)
+              do idim=1,ndim
+                 x_stack(idim,ip,putnext)=x_old(idim,ip)
               enddo
-           endif
-        enddo
-        do it=1,ntypes
-           if(hbs2m(it).ne.0.d0)then
-              do ip=ipfrst(it),iplst(it)
-                 do idim=1,ndim
-                    g_old(idim,ip)=g_stack(idim,ip,getnext,iinc)
-                 enddo
+           enddo
+        endif
+     enddo
+     do it=1,ntypes
+        if(hbs2m(it).ne.0.d0)then
+           do ip=ipfrst(it),iplst(it)
+              do idim=1,ndim
+                 g_stack(idim,ip,putnext,iinc)=g_old(idim,ip)
               enddo
-           endif
-        enddo
-        do it=1,ntypes
-           if(hbs2m(it).ne.0.d0)h_old(it)=h_stack(it,getnext)
-        enddo
-        do ip=1,n_props_in_stack
-           p_old(ip)=p_stack(ip,getnext,iinc)
-        enddo
-        s_old=s_stack(getnext)
-        age=age_stack(getnext)
-        ! update getnext
-        getnext=mod(getnext,mstack)+1
-        ! update nstack
-        nstack=nstack-1
-        return
-      end subroutine getconf
+           enddo
+        endif
+     enddo
+     do it=1,ntypes
+        if(hbs2m(it).ne.0.d0)h_stack(it,putnext)=h_old(it)
+     enddo
+     do ip=1,n_props_in_stack
+        p_stack(ip,putnext,iinc)=p_old(ip)
+     enddo
+     s_stack(putnext)=s_old
+     age_stack(putnext)=age
+     ! update counters
+     putnext=mod(putnext,mstack)+1
+     nstack=nstack+1
+     nconf=nstack
+  enddo
+  return
+end subroutine putconf
 
-      subroutine putconf(n)
-        ! put a configuration in the stack
-        use ewald, only : nstack, ntypes, hbs2m, ipfrst, iplst, ndim, x_old, x_stack, &
-             putnext,getnext, g_old, g_stack, iinc, h_old, h_stack, n_props_in_stack, &
-             p_old, p_stack, s_old, age, age_stack, mstack, nstack, s_stack, nconf
-        implicit none
-        integer it,ip,idim,i,n
-        do i=1,n
-           if(putnext.eq.getnext.and.nstack.ne.0)then
-              stop 'okkio: stack full'
-           endif
-           do it=1,ntypes
-              if(hbs2m(it).ne.0.d0)then
-                 do ip=ipfrst(it),iplst(it)
-                    do idim=1,ndim
-                       x_stack(idim,ip,putnext)=x_old(idim,ip)
-                    enddo
-                 enddo
-              endif
-           enddo
-           do it=1,ntypes
-              if(hbs2m(it).ne.0.d0)then
-                 do ip=ipfrst(it),iplst(it)
-                    do idim=1,ndim
-                       g_stack(idim,ip,putnext,iinc)=g_old(idim,ip)
-                    enddo
-                 enddo
-              endif
-           enddo
-           do it=1,ntypes
-              if(hbs2m(it).ne.0.d0)h_stack(it,putnext)=h_old(it)
-           enddo
-           do ip=1,n_props_in_stack
-              p_stack(ip,putnext,iinc)=p_old(ip)
-           enddo
-           s_stack(putnext)=s_old
-           age_stack(putnext)=age
-           ! update counters
-           putnext=mod(putnext,mstack)+1
-           nstack=nstack+1
-           nconf=nstack
-        enddo
-        return
-      end subroutine putconf
+subroutine read_conf
+  ! read coordinates from file, compute properties and store in the stack
+  use ewald, only : mytid, getnext, putnext, ntypes, x_file, res_string, restart_dir, &
+       ntarget, jetot, jltf, ipfrst, iplst, x_new, ndim, p_new, p_old
+  implicit none
+  integer it,iunit,i,j,ip,idim
+  real*8 p
+  character(6):: sfix
 
-      subroutine read_conf
-! read coordinates from file, compute properties and store in the stack
-      use ewald, only : mytid, getnext, putnext, ntypes, x_file, res_string, restart_dir, &
-                        ntarget, jetot, jltf, ipfrst, iplst, x_new, ndim, p_new, p_old
-      implicit none
-      integer it,iunit,i,j,ip,idim
-      real*8 p
-      character(6):: sfix
-
-      write(sfix,'(i0)') mytid
-! initialize counters
-      getnext=1
-      putnext=1
-! open files
-      do it=1,ntypes
-       iunit=30+it-1
-       i=index(x_file(it),' ')-1
-       j=index(res_string,' ')-1
-       open(iunit &
-           ,file=trim(restart_dir)//x_file(it)(1:i)//res_string(1:j)//sfix,status='old')
-      enddo
-! loop over configurations
-      do i=1,ntarget
-! read positions
-       do it=1,ntypes
+  write(sfix,'(i0)') mytid
+  ! initialize counters
+  getnext=1
+  putnext=1
+  ! open files
+  do it=1,ntypes
+     iunit=30+it-1
+     i=index(x_file(it),' ')-1
+     j=index(res_string,' ')-1
+     open(iunit &
+          ,file=trim(restart_dir)//x_file(it)(1:i)//res_string(1:j)//sfix,status='old')
+  enddo
+  ! loop over configurations
+  do i=1,ntarget
+     ! read positions
+     do it=1,ntypes
         iunit=30+it-1
         do ip=ipfrst(it),iplst(it)
-         read(iunit,*,end=1)(x_new(idim,ip),idim=1,ndim)
+           read(iunit,*,end=1)(x_new(idim,ip),idim=1,ndim)
         enddo
-       enddo
-! compute properties
-       call compute_properties(1)
-      write(*,*)i,p_new(jetot),p_new(jltf)
-! this is to put computed "new" things into "old" arrays used by putconf
-       p_old(jetot)=p_new(jetot)
-       p=1.d0
-       call metropolis_test(p)
-! put configurations in the stack
-       call putconf(1)
-      enddo
-! close files
- 1    do it=1,ntypes
-       iunit=30+it-1
-       close(iunit)
-      enddo
-      return
-      end subroutine read_conf
+     enddo
+     ! compute properties
+     call compute_properties(1)
+     write(*,*)i,p_new(jetot),p_new(jltf)
+     ! this is to put computed "new" things into "old" arrays used by putconf
+     p_old(jetot)=p_new(jetot)
+     p=1.d0
+     call metropolis_test(p)
+     ! put configurations in the stack
+     call putconf(1)
+  enddo
+  ! close files
+1 do it=1,ntypes
+     iunit=30+it-1
+     close(iunit)
+  enddo
+  return
+end subroutine read_conf
 
-      subroutine write_conf
-        ! get all the configurations from the stack and write coordinates on file
-        use ewald, only: mytid, ntypes, x_file, restart_dir, nstack, ipfrst, iplst, x_old, ndim
-        implicit none
+subroutine write_conf
+  ! get all the configurations from the stack and write coordinates on file
+  use ewald, only: mytid, ntypes, x_file, restart_dir, nstack, ipfrst, iplst, x_old, ndim
+  implicit none
 
-        integer it,i,ip,idim,iunit
-        character(6):: sfix
+  integer it,i,ip,idim,iunit
+  character(6):: sfix
 
-        write(sfix,'(i0)') mytid
-        do it=1,ntypes
-           i=index(x_file(it),' ')-1
-           iunit=30+it-1
-           open(iunit,file=trim(restart_dir)//x_file(it)(1:i)//'.'//sfix,status='unknown')
+  write(sfix,'(i0)') mytid
+  do it=1,ntypes
+     i=index(x_file(it),' ')-1
+     iunit=30+it-1
+     open(iunit,file=trim(restart_dir)//x_file(it)(1:i)//'.'//sfix,status='unknown')
+  enddo
+  do i=1,nstack
+     call getconf
+     do it=1,ntypes
+        iunit=30+it-1
+        do ip=ipfrst(it),iplst(it)
+           write(iunit,*)(x_old(idim,ip),idim=1,ndim)
         enddo
-        do i=1,nstack
-           call getconf
-           do it=1,ntypes
-              iunit=30+it-1
-              do ip=ipfrst(it),iplst(it)
-                 write(iunit,*)(x_old(idim,ip),idim=1,ndim)
-              enddo
-           enddo
-        enddo
-        do it=1,ntypes
-           iunit=30+it-1
-           close(iunit)
-        enddo
-        return
-      end subroutine write_conf
+     enddo
+  enddo
+  do it=1,ntypes
+     iunit=30+it-1
+     close(iunit)
+  enddo
+  return
+end subroutine write_conf
 
 
       subroutine testd
@@ -646,120 +647,123 @@ end subroutine vmc
       end
 
       subroutine kinetic
-      use ewald
-      integer it,ip,idim,n_jgg
-      real*8 g2,gg,x2
-      p_new(jkin(0))=0.d0
-      p_new(jgg)=0.d0
-      n_jgg=0
-      gg=1.d0
-      do it=1,ntypes
-       if(hbs2m(it).ne.0.d0)then
-        g2=0.d0
-        if(adrift.eq.0.d0)then
-         do ip=ipfrst(it),iplst(it)
-          do idim=1,ndim
-           g2=g2+g_new(idim,ip)**2
-          enddo
-         enddo
-         p_new(jgg)=1.d0
-         n_jgg=1
-        else
-         do ip=ipfrst(it),iplst(it)
-          x2=0.d0
-          do idim=1,ndim
-           x2=x2+g_new(idim,ip)**2
-          enddo 
-          gg=x2*adrift*delta**2*vari(it)
-          gg=(-1.d0+sqrt(1.d0+2.d0*gg))/gg
-          p_new(jgg)=p_new(jgg)+gg
-          n_jgg=n_jgg+1
-          do idim=1,ndim
-           g_new(idim,ip)=g_new(idim,ip)*gg
-          enddo
-          g2=g2+x2
-         enddo
-        endif
-        p_new(jkin(it))=hbs2m(it)*(h_new(it)-g2)
-        p_new(jkin(0))=p_new(jkin(0))+p_new(jkin(it))
-        p_new(jkin(it))=p_new(jkin(it))/np(it)
-        p_new(jun(it))=1.d0/sqrt(g2) ! nodal distance
-       endif
-      enddo
-      p_new(jkin(0))=p_new(jkin(0))/npnorm
-      p_new(jgg)=p_new(jgg)/n_jgg
-      if(ntheta.ne.0)p_new(jefp)=grad2_ph/npnorm
-      return
-      end
+        use ewald
+        integer it,ip,idim,n_jgg
+        real*8 g2,gg,x2
+        p_new(jkin(0))=0.d0
+        p_new(jgg)=0.d0
+        n_jgg=0
+        gg=1.d0
+        do it=1,ntypes
+           if(hbs2m(it).ne.0.d0)then
+              g2=0.d0
+              if(adrift.eq.0.d0)then
+                 do ip=ipfrst(it),iplst(it)
+                    do idim=1,ndim
+                       g2=g2+g_new(idim,ip)**2
+                    enddo
+                 enddo
+                 p_new(jgg)=1.d0
+                 n_jgg=1
+              else
+                 do ip=ipfrst(it),iplst(it)
+                    x2=0.d0
+                    do idim=1,ndim
+                       x2=x2+g_new(idim,ip)**2
+                    enddo
+                    gg=x2*adrift*delta**2*vari(it)
+                    gg=(-1.d0+sqrt(1.d0+2.d0*gg))/gg
+                    p_new(jgg)=p_new(jgg)+gg
+                    n_jgg=n_jgg+1
+                    do idim=1,ndim
+                       g_new(idim,ip)=g_new(idim,ip)*gg
+                    enddo
+                    g2=g2+x2
+                 enddo
+              endif
+              p_new(jkin(it))=hbs2m(it)*(h_new(it)-g2)
+              p_new(jkin(0))=p_new(jkin(0))+p_new(jkin(it))
+              p_new(jkin(it))=p_new(jkin(it))/np(it)
+              p_new(jun(it))=1.d0/sqrt(g2) ! nodal distance
+           endif
+        enddo
+        p_new(jkin(0))=p_new(jkin(0))/npnorm
+        p_new(jgg)=p_new(jgg)/n_jgg
+        if(ntheta.ne.0)p_new(jefp)=grad2_ph/npnorm
+        return
+      end subroutine kinetic
 
 
-! three_body and makeg, dotg were here (now in three_body.f90)
+      ! three_body and makeg, dotg were here (now in three_body.f90)
 
       subroutine two_body
-      use ewald
-      use utils
-      real*8 t,dt,ddt,ltf,g(mdim,mnp),h(mtypes)
-      integer i,ijcount,it,jt,ip,jp,idim
-      save ltf,g,h
-      if(update_two_body.ne.0)then
-       ltf=0.d0
-       call r_set(nptot*mdim,g,0.d0)
-       call r_set(ntypes,h,0.d0)
-       ijcount=0
-       do it=1,ntypes
-        i=iu2table(it,it,iinc)
-        if(i.ne.0)then
-         do ip=ipfrst(it),iplst(it)
-          do jp=ip+1,iplst(it)
-           ijcount=ijcount+1
-           call getf(ut(0,1,i),ngrid(i),mgrid,pp_ind(ijcount) &
-                    ,pp_rem(ijcount),drti,drti2,t,dt,ddt)
-           ltf=ltf+t
-           dt=dt*pp_byr(ijcount)
-           do idim=1,ndim
-            g(idim,ip)=g(idim,ip)+dt*pp_rvec(idim,ijcount)
-            g(idim,jp)=g(idim,jp)-dt*pp_rvec(idim,ijcount)
+        use ewald, only : update_two_body,nptot,mdim,ntypes,iu2table,iinc,ipfrst,iplst, &
+                         ut,ngrid,mgrid,pp_ind,pp_rem,drti,drti2,pp_byr,ndim,pp_rvec,iu2table, &
+                         p_new, hbs2m, g_new, jltf, h_new, mnp, mtypes
+        use utils
+        implicit none
+        real*8 t,dt,ddt,ltf,g(mdim,mnp),h(mtypes)
+        integer i,ijcount,it,jt,ip,jp,idim
+        save ltf,g,h
+        if(update_two_body.ne.0)then
+           ltf=0.d0
+           call r_set(nptot*mdim,g,0.d0)
+           call r_set(ntypes,h,0.d0)
+           ijcount=0
+           do it=1,ntypes
+              i=iu2table(it,it,iinc)
+              if(i.ne.0)then
+                 do ip=ipfrst(it),iplst(it)
+                    do jp=ip+1,iplst(it)
+                       ijcount=ijcount+1 
+                       call getf(ut(0,1,i),ngrid(i),mgrid,pp_ind(ijcount) &
+                            ,pp_rem(ijcount),drti,drti2,t,dt,ddt) ! problem here pp_ind is wrong
+                       ltf=ltf+t
+                       dt=dt*pp_byr(ijcount)
+                       do idim=1,ndim
+                          g(idim,ip)=g(idim,ip)+dt*pp_rvec(idim,ijcount)
+                          g(idim,jp)=g(idim,jp)-dt*pp_rvec(idim,ijcount)
+                       enddo
+                       h(it)=h(it)+2*(ddt+(ndim-1)*dt)
+                    enddo
+                 enddo
+              endif
+              do jt=it+1,ntypes
+                 i=iu2table(it,jt,iinc)
+                 if(i.ne.0)then
+                    do ip=ipfrst(it),iplst(it)
+                       do jp=ipfrst(jt),iplst(jt)
+                          ijcount=ijcount+1
+                          call getf(ut(0,1,i),ngrid(i),mgrid,pp_ind(ijcount) &
+                               ,pp_rem(ijcount),drti,drti2,t,dt,ddt)
+                          ltf=ltf+t
+                          dt=dt*pp_byr(ijcount)
+                          do idim=1,ndim
+                             g(idim,ip)=g(idim,ip)+dt*pp_rvec(idim,ijcount)
+                             g(idim,jp)=g(idim,jp)-dt*pp_rvec(idim,ijcount)
+                          enddo
+                          h(it)=h(it)+ddt+(ndim-1)*dt
+                          h(jt)=h(jt)+ddt+(ndim-1)*dt
+                       enddo
+                    enddo
+                 endif
+              enddo
            enddo
-           h(it)=h(it)+2*(ddt+(ndim-1)*dt)
-          enddo
-         enddo
         endif
-        do jt=it+1,ntypes
-         i=iu2table(it,jt,iinc)
-         if(i.ne.0)then
-          do ip=ipfrst(it),iplst(it)
-           do jp=ipfrst(jt),iplst(jt)
-            ijcount=ijcount+1
-            call getf(ut(0,1,i),ngrid(i),mgrid,pp_ind(ijcount) &
-                     ,pp_rem(ijcount),drti,drti2,t,dt,ddt)
-            ltf=ltf+t
-            dt=dt*pp_byr(ijcount)
-            do idim=1,ndim
-             g(idim,ip)=g(idim,ip)+dt*pp_rvec(idim,ijcount)
-             g(idim,jp)=g(idim,jp)-dt*pp_rvec(idim,ijcount)
-            enddo
-            h(it)=h(it)+ddt+(ndim-1)*dt
-            h(jt)=h(jt)+ddt+(ndim-1)*dt
-           enddo
-          enddo
-         endif
+        p_new(jltf)=p_new(jltf)+ltf
+        do it=1,ntypes
+           if(hbs2m(it).ne.0)then
+              do ip=ipfrst(it),iplst(it)
+                 do idim=1,ndim
+                    g_new(idim,ip)=g_new(idim,ip)+g(idim,ip)
+                 enddo
+              enddo
+           endif
         enddo
-       enddo
-      endif
-      p_new(jltf)=p_new(jltf)+ltf
-      do it=1,ntypes
-       if(hbs2m(it).ne.0)then
-        do ip=ipfrst(it),iplst(it)
-         do idim=1,ndim
-          g_new(idim,ip)=g_new(idim,ip)+g(idim,ip)
-         enddo
+        do it=1,ntypes
+           if(hbs2m(it).ne.0)h_new(it)=h_new(it)+h(it)
         enddo
-       endif
-      enddo
-      do it=1,ntypes
-       if(hbs2m(it).ne.0)h_new(it)=h_new(it)+h(it)
-      enddo
-      return
+        return
       end subroutine two_body
 
 ! used in DEEP
@@ -955,166 +959,167 @@ end subroutine normalizza_gofr
       end subroutine getf_0
 
       subroutine getf(t,ngrid,mgrid,ind,rem,drti,drti2,f,df,ddf)
-! spline interpolation from table; f, f', f"
-      integer i,ind,ngrid,mgrid
-      real*8 f,df,ddf,t(0:mgrid,4),drti,drti2,rm,rem
-      i=min(ngrid,ind)
-      rm=rem*drti
-      f=t(i,1)+rm*(t(i,2)+rm*(  t(i,3)+rm*   t(i,4) ))
-      df=         (t(i,2)+rm*(2*t(i,3)+rm*(3*t(i,4))))*drti
-      ddf=                     (t(i,3)+rm*(3*t(i,4))) *drti2
-      return
-      end
+        ! spline interpolation from table; f, f', f"
+        implicit none
+        integer i,ind,ngrid,mgrid
+        real*8 f,df,ddf,t(0:mgrid,4),drti,drti2,rm,rem
+        i=min(ngrid,ind)
+        rm=rem*drti
+        f=t(i,1)+rm*(t(i,2)+rm*(  t(i,3)+rm*   t(i,4) ))
+        df=         (t(i,2)+rm*(2*t(i,3)+rm*(3*t(i,4))))*drti
+        ddf=                     (t(i,3)+rm*(3*t(i,4))) *drti2
+        return
+      end subroutine getf
 
       subroutine distances
-! compute distances and set up quantities needed to use lookup tables
-! (here there is only the distance from the origin)
-      use ewald
-      use utils
-      integer idim,ip,jp,it,jt,ijcount,i,ik,ik2,ik1
-      real*8 kr
-      save
-! distance between pairs
-      if(update_two_body.ne.0)then
-       ijcount=0
-       do it=1,ntypes
-        if(pp_dist(it,it).ne.0)then
-         do ip=ipfrst(it),iplst(it)
-          do jp=ip+1,iplst(it)
-           ijcount=ijcount+1
-           pp_r(ijcount)=0.d0
-           do idim=1,ndim
-            pp_rvec(idim,ijcount)=x_new(idim,ip)-x_new(idim,jp)
-            pp_rvec(idim,ijcount)=pp_rvec(idim,ijcount) &
-                  -el(idim)*nint(eli(idim)*pp_rvec(idim,ijcount))
-            pp_r(ijcount)=pp_r(ijcount)+pp_rvec(idim,ijcount)**2
+        ! compute distances and set up quantities needed to use lookup tables
+        ! (here there is only the distance from the origin)
+        use ewald
+        use utils
+        integer idim,ip,jp,it,jt,ijcount,i,ik,ik2,ik1
+        real*8 kr
+        save
+        ! distance between pairs
+        if(update_two_body.ne.0)then
+           ijcount=0
+           do it=1,ntypes
+              if(pp_dist(it,it).ne.0)then
+                 do ip=ipfrst(it),iplst(it)
+                    do jp=ip+1,iplst(it)
+                       ijcount=ijcount+1
+                       pp_r(ijcount)=0.d0
+                       do idim=1,ndim
+                          pp_rvec(idim,ijcount)=x_new(idim,ip)-x_new(idim,jp)
+                          pp_rvec(idim,ijcount)=pp_rvec(idim,ijcount) &
+                               -el(idim)*nint(eli(idim)*pp_rvec(idim,ijcount))
+                          pp_r(ijcount)=pp_r(ijcount)+pp_rvec(idim,ijcount)**2
+                       enddo
+                       pp_r(ijcount)=sqrt(pp_r(ijcount))
+                       pp_ind(ijcount)=int(pp_r(ijcount)*drti)
+                       pp_rem(ijcount)=pp_r(ijcount)-pp_ind(ijcount)*drt
+                       pp_byr(ijcount)=1.d0/pp_r(ijcount)
+                    enddo
+                 enddo
+              endif
+              do jt=it+1,ntypes
+                 if(pp_dist(it,jt).ne.0)then
+                    do ip=ipfrst(it),iplst(it)
+                       do jp=ipfrst(jt),iplst(jt)
+                          ijcount=ijcount+1
+                          pp_r(ijcount)=0.d0
+                          do idim=1,ndim
+                             pp_rvec(idim,ijcount)=x_new(idim,ip)-x_new(idim,jp)
+                             pp_rvec(idim,ijcount)=pp_rvec(idim,ijcount) &
+                                  -el(idim)*nint(eli(idim)*pp_rvec(idim,ijcount))
+                             pp_r(ijcount)=pp_r(ijcount)+pp_rvec(idim,ijcount)**2
+                          enddo
+                          pp_r(ijcount)=sqrt(pp_r(ijcount))
+                          pp_ind(ijcount)=int(pp_r(ijcount)*drti)
+                          pp_rem(ijcount)=pp_r(ijcount)-pp_ind(ijcount)*drt
+                          pp_byr(ijcount)=1.d0/pp_r(ijcount)
+                       enddo
+                    enddo
+                 endif
+              enddo
            enddo
-           pp_r(ijcount)=sqrt(pp_r(ijcount))
-           pp_ind(ijcount)=int(pp_r(ijcount)*drti)
-           pp_rem(ijcount)=pp_r(ijcount)-pp_ind(ijcount)*drt
-           pp_byr(ijcount)=1.d0/pp_r(ijcount)
-          enddo
-         enddo
         endif
-        do jt=it+1,ntypes
-         if(pp_dist(it,jt).ne.0)then
-          do ip=ipfrst(it),iplst(it)
-           do jp=ipfrst(jt),iplst(jt)
-            ijcount=ijcount+1
-            pp_r(ijcount)=0.d0
-            do idim=1,ndim
-             pp_rvec(idim,ijcount)=x_new(idim,ip)-x_new(idim,jp)
-             pp_rvec(idim,ijcount)=pp_rvec(idim,ijcount) &
-                   -el(idim)*nint(eli(idim)*pp_rvec(idim,ijcount))
-             pp_r(ijcount)=pp_r(ijcount)+pp_rvec(idim,ijcount)**2
-            enddo
-            pp_r(ijcount)=sqrt(pp_r(ijcount))
-            pp_ind(ijcount)=int(pp_r(ijcount)*drti)
-            pp_rem(ijcount)=pp_r(ijcount)-pp_ind(ijcount)*drt
-            pp_byr(ijcount)=1.d0/pp_r(ijcount)
+        ! distance between particles and sites for Nosanow wave function
+        do it=1,ntypes
+           do jt=1,nstypes
+              if(n_dist(it,jt).ne.0)then
+                 do ip=ipfrst(it),iplst(it)
+                    jp=isfrst(jt)-1+ip
+                    n_r(ip)=0.d0
+                    do idim=1,ndim
+                       n_rvec(idim,ip)=x_new(idim,ip)-sites(idim,jp,iinc)
+                       n_rvec(idim,ip)=n_rvec(idim,ip) &
+                            -el(idim)*nint(n_rvec(idim,ip)*eli(idim))
+                       n_r(ip)=n_r(ip)+n_rvec(idim,ip)**2
+                    enddo
+                    n_r(ip)=sqrt(n_r(ip))
+                    n_ind(ip)=int(n_r(ip)*drti)
+                    n_rem(ip)=n_r(ip)-n_ind(ip)*drt
+                    n_byr(ip)=1.d0/n_r(ip)
+                 enddo
+              endif
            enddo
-          enddo
-         endif
         enddo
-       enddo
-      endif
-! distance between particles and sites for Nosanow wave function
-      do it=1,ntypes
-       do jt=1,nstypes
-        if(n_dist(it,jt).ne.0)then
-         do ip=ipfrst(it),iplst(it)
-          jp=isfrst(jt)-1+ip
-          n_r(ip)=0.d0
-          do idim=1,ndim
-           n_rvec(idim,ip)=x_new(idim,ip)-sites(idim,jp,iinc)
-           n_rvec(idim,ip)=n_rvec(idim,ip) &
-                   -el(idim)*nint(n_rvec(idim,ip)*eli(idim))
-           n_r(ip)=n_r(ip)+n_rvec(idim,ip)**2
-          enddo
-          n_r(ip)=sqrt(n_r(ip))
-          n_ind(ip)=int(n_r(ip)*drti)
-          n_rem(ip)=n_r(ip)-n_ind(ip)*drt
-          n_byr(ip)=1.d0/n_r(ip)
-         enddo
-        endif
-       enddo
-      enddo
-! particle-site distance for Slater-Nosanow or Bose-Nosanow or u3_spp
-      ijcount=0
-      do it=1,ntypes
-       do jt=1,nstypes
-        if(ps_dist(it,jt).ne.0)then
-         do ip=ipfrst(it),iplst(it)
-          do jp=isfrst(jt),islst(jt)
-           ijcount=ijcount+1
-           ps_r(ijcount)=0.d0
-           do idim=1,ndim
-            ps_rvec(idim,ijcount)=x_new(idim,ip)-sites(idim,jp,iinc)
-            ps_rvec(idim,ijcount)=ps_rvec(idim,ijcount) &
-                    -el(idim)*nint(ps_rvec(idim,ijcount)*eli(idim))
-            ps_r(ijcount)=ps_r(ijcount)+ps_rvec(idim,ijcount)**2
+        ! particle-site distance for Slater-Nosanow or Bose-Nosanow or u3_spp
+        ijcount=0
+        do it=1,ntypes
+           do jt=1,nstypes
+              if(ps_dist(it,jt).ne.0)then
+                 do ip=ipfrst(it),iplst(it)
+                    do jp=isfrst(jt),islst(jt)
+                       ijcount=ijcount+1
+                       ps_r(ijcount)=0.d0
+                       do idim=1,ndim
+                          ps_rvec(idim,ijcount)=x_new(idim,ip)-sites(idim,jp,iinc)
+                          ps_rvec(idim,ijcount)=ps_rvec(idim,ijcount) &
+                               -el(idim)*nint(ps_rvec(idim,ijcount)*eli(idim))
+                          ps_r(ijcount)=ps_r(ijcount)+ps_rvec(idim,ijcount)**2
+                       enddo
+                       ps_r(ijcount)=sqrt(ps_r(ijcount))
+                       ps_ind(ijcount)=int(ps_r(ijcount)*drti)
+                       ps_rem(ijcount)=ps_r(ijcount)-ps_ind(ijcount)*drt
+                       ps_byr(ijcount)=1.d0/ps_r(ijcount)
+                    enddo
+                 enddo
+              endif
            enddo
-           ps_r(ijcount)=sqrt(ps_r(ijcount))
-           ps_ind(ijcount)=int(ps_r(ijcount)*drti)
-           ps_rem(ijcount)=ps_r(ijcount)-ps_ind(ijcount)*drt
-           ps_byr(ijcount)=1.d0/ps_r(ijcount)
-          enddo
-         enddo
-        endif
-       enddo
-      enddo
-! rhok
-      if(nrhok.ne.0)then
-       do it=1,ntypes
-        if(irhok(it).ne.0)then
-         call r_set(2*nk,rhok(1,irhok(it)),0.d0)
-         do ip=ipfrst(it),iplst(it)
-          do ik=1,nk
-           ik2=2*ik
-           ik1=ik2-1
-           kr=0.d0
-           do idim=1,ndim
-            kr=kr+kvec(idim,ik)*x_new(idim,ip)
-           enddo
-           rhok(ik1,irhok(it))=rhok(ik1,irhok(it))+cos(kr)
-           rhok(ik2,irhok(it))=rhok(ik2,irhok(it))+sin(kr)
-          enddo
-         enddo
-        endif
-       enddo
-      endif
-! gofr
-      if(ngofr.ne.0)then
-       ijcount=0
-       do it=1,ntypes
-        if(igofr(it,it).ne.0)then
-         call r_set(mgrid_gofr+1,gofr(0,igofr(it,it)),0.d0)
-         do ip=ipfrst(it),iplst(it)
-          do jp=ip+1,iplst(it)
-           ijcount=ijcount+1
-           i=min(pp_ind(ijcount)/ngrid_gofr_ratio,mgrid_gofr)
-           gofr(i,igofr(it,it))=gofr(i,igofr(it,it))+1
-          enddo
-         enddo
-        endif
-        do jt=it+1,ntypes
-         if(igofr(it,jt).ne.0)then
-          call r_set(mgrid_gofr+1,gofr(0,igofr(it,jt)),0.d0)
-          do ip=ipfrst(it),iplst(it)
-           do jp=ipfrst(jt),iplst(jt)
-            ijcount=ijcount+1
-            i=min(pp_ind(ijcount)/ngrid_gofr_ratio,mgrid_gofr)
-            gofr(i,igofr(it,jt))=gofr(i,igofr(it,jt))+1
-           enddo
-          enddo
-         endif
         enddo
-       enddo
-      endif
-      return
-      end
+        ! rhok
+        if(nrhok.ne.0)then
+           do it=1,ntypes
+              if(irhok(it).ne.0)then
+                 call r_set(2*nk,rhok(1,irhok(it)),0.d0)
+                 do ip=ipfrst(it),iplst(it)
+                    do ik=1,nk
+                       ik2=2*ik
+                       ik1=ik2-1
+                       kr=0.d0
+                       do idim=1,ndim
+                          kr=kr+kvec(idim,ik)*x_new(idim,ip)
+                       enddo
+                       rhok(ik1,irhok(it))=rhok(ik1,irhok(it))+cos(kr)
+                       rhok(ik2,irhok(it))=rhok(ik2,irhok(it))+sin(kr)
+                    enddo
+                 enddo
+              endif
+           enddo
+        endif
+        ! gofr
+        if(ngofr.ne.0)then
+           ijcount=0
+           do it=1,ntypes
+              if(igofr(it,it).ne.0)then
+                 call r_set(mgrid_gofr+1,gofr(0,igofr(it,it)),0.d0)
+                 do ip=ipfrst(it),iplst(it)
+                    do jp=ip+1,iplst(it)
+                       ijcount=ijcount+1
+                       i=min(pp_ind(ijcount)/ngrid_gofr_ratio,mgrid_gofr)
+                       gofr(i,igofr(it,it))=gofr(i,igofr(it,it))+1
+                    enddo
+                 enddo
+              endif
+              do jt=it+1,ntypes
+                 if(igofr(it,jt).ne.0)then
+                    call r_set(mgrid_gofr+1,gofr(0,igofr(it,jt)),0.d0)
+                    do ip=ipfrst(it),iplst(it)
+                       do jp=ipfrst(jt),iplst(jt)
+                          ijcount=ijcount+1
+                          i=min(pp_ind(ijcount)/ngrid_gofr_ratio,mgrid_gofr)
+                          gofr(i,igofr(it,jt))=gofr(i,igofr(it,jt))+1
+                       enddo
+                    enddo
+                 endif
+              enddo
+           enddo
+        endif
+        return
+      end subroutine distances
 
-! used in DEEP
+      ! used in DEEP
       subroutine averages(what,iblk,who,wate)
         use ewald, only : n_props, cml_av, cml2, cml_norm, age, max_nconf, min_nconf, nage, &
              mytid, mgrid_gofr,ngofr, nconf, nrhok, m_props, nk, rhok_filename,&
@@ -1161,129 +1166,129 @@ end subroutine normalizza_gofr
                 ,0,MPI_COMM_WORLD,j)
            call MPI_REDUCE(blk_norm,tot_norm,1,MPI_REAL8,MPI_SUM &
                 ,0,MPI_COMM_WORLD,j)
-!$omp single 
-!          if(mytid.eq.0)then
-              blk_norm=tot_norm
-              do i=1,n_props
-                 blk_av(i)=tot_av(i)
-              enddo
-              call normalizza_gofr(blk_av(jgofr),mgrid_gofr,ngofr)
-              do i=1,n_props
-                 cml_av(i)=cml_av(i)+blk_av(i)
-                 cml2(i)=cml2(i)+blk_av(i)**2/blk_norm
-              enddo
-              cml_norm=cml_norm+blk_norm
-              if(who.eq.'vmc')then
-                 write(6,*)'===>> vmc block ',iblk
-              elseif(who.eq.'der')then
-                 write(6,*)'===>> rmcder block ',iblk
-              elseif(who.eq.'dmc')then
-                 etrial=cml_av(jetot)/cml_norm
-                 write(6,*)'===>> dmc block ',iblk &
-                      ,' nconf = ',nconf &
-                      ,' mnnc, mxnc = ',min_nconf,max_nconf &
-                      ,' nage = ',nage
-              elseif(who.eq.'rmc')then
-                 write(6,*)'===>> rmc block ',iblk
+           !$omp single 
+           !          if(mytid.eq.0)then
+           blk_norm=tot_norm
+           do i=1,n_props
+              blk_av(i)=tot_av(i)
+           enddo
+           call normalizza_gofr(blk_av(jgofr),mgrid_gofr,ngofr)
+           do i=1,n_props
+              cml_av(i)=cml_av(i)+blk_av(i)
+              cml2(i)=cml2(i)+blk_av(i)**2/blk_norm
+           enddo
+           cml_norm=cml_norm+blk_norm
+           if(who.eq.'vmc')then
+              write(6,*)'===>> vmc block ',iblk
+           elseif(who.eq.'der')then
+              write(6,*)'===>> rmcder block ',iblk
+           elseif(who.eq.'dmc')then
+              etrial=cml_av(jetot)/cml_norm
+              write(6,*)'===>> dmc block ',iblk &
+                   ,' nconf = ',nconf &
+                   ,' mnnc, mxnc = ',min_nconf,max_nconf &
+                   ,' nage = ',nage
+           elseif(who.eq.'rmc')then
+              write(6,*)'===>> rmc block ',iblk
+           endif
+           do i=1,n_scalar_props
+              if(iblk.gt.1)then
+                 err=sqrt(abs((cml2(i)/cml_norm-(cml_av(i)/cml_norm)**2) &
+                      /(iblk-1)))
+              else
+                 err=0.d0
               endif
-              do i=1,n_scalar_props
-                 if(iblk.gt.1)then
-                    err=sqrt(abs((cml2(i)/cml_norm-(cml_av(i)/cml_norm)**2) &
-                         /(iblk-1)))
-                 else
-                    err=0.d0
-                 endif
-                 write(6,'(2e19.11,e9.2,e10.3,2x,a20)')blk_av(i)/blk_norm &
-                      ,cml_av(i)/cml_norm &
-                      ,err,blk_norm,name(i)
+              write(6,'(2e19.11,e9.2,e10.3,2x,a20)')blk_av(i)/blk_norm &
+                   ,cml_av(i)/cml_norm &
+                   ,err,blk_norm,name(i)
+           enddo
+           ! files for non-scalar averages
+           iunit=50
+           ! rhok
+           i=jrhok
+           iunit=iunit+1
+           do j=1,nrhok
+              string=' '
+              call write_nonscalar_props(m_props,i,2*nk,iblk,cml_av &
+                   ,cml2,cml_norm,blk_av,blk_norm,rhok_filename(j),iunit,0,0 &
+                   ,string)
+           enddo
+           ! gofr
+           i=jgofr
+           iunit=iunit+1
+           do j=1,ngofr
+              string=' '
+              call write_nonscalar_props(m_props,i,mgrid_gofr+1,iblk,cml_av &
+                   ,cml2,cml_norm,blk_av,blk_norm,gofr_filename(j),iunit,0,0 &
+                   ,string)
+           enddo
+           ! derivate
+           i=jder
+           iunit=iunit+1
+           do j=1,nder
+              string=dername(j)
+              k=10
+              call write_nonscalar_props(m_props,i,k,iblk,cml_av &
+                   ,cml2,cml_norm,blk_av,blk_norm,der_filename(j),iunit,0,1 &
+                   ,string)
+           enddo
+           ! mstar
+           i=jmstar
+           iunit=iunit+1
+           do j=1,nmstar
+              string=' '
+              k=(ntau-2*ntauskip)/imstar_tau_skip(j)
+              call write_nonscalar_props(m_props,i,k,iblk,cml_av &
+                   ,cml2,cml_norm,blk_av,blk_norm,mstar_filename(j),iunit,0,0 &
+                   ,string)
+           enddo
+           ! cmass z
+           i=jcmass_z
+           iunit=iunit+1
+           do j=1,ncmass
+              string=typename(j)
+              k=2*ndim
+              call write_nonscalar_props(m_props,i,k,iblk,cml_av &
+                   ,cml2,cml_norm,blk_av,blk_norm,cmass_z_filename(j),iunit,1 &
+                   ,0,string)
+           enddo
+           ! cmass diffusion
+           i=jcmass_d
+           iunit=iunit+1
+           do j=1,ncmass
+              string=' '
+              kk=0
+              do k=1,ncm_ntauskip
+                 kk=kk+(ntau-2*cm_ntauskip(k,j))/icmass_tau_skip(j)
               enddo
-              ! files for non-scalar averages
-              iunit=50
-              ! rhok
-              i=jrhok
-              iunit=iunit+1
-              do j=1,nrhok
-                 string=' '
-                 call write_nonscalar_props(m_props,i,2*nk,iblk,cml_av &
-                      ,cml2,cml_norm,blk_av,blk_norm,rhok_filename(j),iunit,0,0 &
-                      ,string)
-              enddo
-              ! gofr
-              i=jgofr
-              iunit=iunit+1
-              do j=1,ngofr
-                 string=' '
-                 call write_nonscalar_props(m_props,i,mgrid_gofr+1,iblk,cml_av &
-                      ,cml2,cml_norm,blk_av,blk_norm,gofr_filename(j),iunit,0,0 &
-                      ,string)
-              enddo
-              ! derivate
-              i=jder
-              iunit=iunit+1
-              do j=1,nder
-                 string=dername(j)
-                 k=10
-                 call write_nonscalar_props(m_props,i,k,iblk,cml_av &
-                      ,cml2,cml_norm,blk_av,blk_norm,der_filename(j),iunit,0,1 &
-                      ,string)
-              enddo
-              ! mstar
-              i=jmstar
-              iunit=iunit+1
-              do j=1,nmstar
-                 string=' '
-                 k=(ntau-2*ntauskip)/imstar_tau_skip(j)
-                 call write_nonscalar_props(m_props,i,k,iblk,cml_av &
-                      ,cml2,cml_norm,blk_av,blk_norm,mstar_filename(j),iunit,0,0 &
-                      ,string)
-              enddo
-              ! cmass z
-              i=jcmass_z
-              iunit=iunit+1
-              do j=1,ncmass
-                 string=typename(j)
-                 k=2*ndim
-                 call write_nonscalar_props(m_props,i,k,iblk,cml_av &
-                      ,cml2,cml_norm,blk_av,blk_norm,cmass_z_filename(j),iunit,1 &
-                      ,0,string)
-              enddo
-              ! cmass diffusion
-              i=jcmass_d
-              iunit=iunit+1
-              do j=1,ncmass
-                 string=' '
-                 kk=0
-                 do k=1,ncm_ntauskip
-                    kk=kk+(ntau-2*cm_ntauskip(k,j))/icmass_tau_skip(j)
-                 enddo
-                 call write_nonscalar_props(m_props,i,kk,iblk,cml_av &
-                      ,cml2,cml_norm,blk_av,blk_norm,cmass_filename(j),iunit,0,0 &
-                      ,string)
-              enddo
-              ! excite
-              i=jexcite
-              iunit=iunit+1
-              if(alg.eq.'exc')then
-                 string=' '
-                 k=n_props_exc
-                 call write_nonscalar_props(m_props,i,k,iblk,cml_av &
-                      ,cml2,cml_norm,blk_av,blk_norm,excite_filename,iunit,1,0 &
-                      ,string)
-              endif
-              ! itc
-              i=jitc
-              iunit=iunit+1
-              do j=1,nitc
-                 string=' '
-                 k=itc_prop_count(j)*(ntau-2*ntauskip)/itc_tau_skip(j)
-                 call write_nonscalar_props(m_props,i,k,iblk,cml_av &
-                      ,cml2,cml_norm,blk_av,blk_norm,itc_filename(j),iunit,0,0 &
-                      ,string)
-              enddo
-!           endif
-!$omp end single copyprivate(etrial)
-!           if(who.eq.'dmc') &
-!                call MPI_BCAST(etrial,1,MPI_REAL8,0,MPI_COMM_WORLD,jrc)
+              call write_nonscalar_props(m_props,i,kk,iblk,cml_av &
+                   ,cml2,cml_norm,blk_av,blk_norm,cmass_filename(j),iunit,0,0 &
+                   ,string)
+           enddo
+           ! excite
+           i=jexcite
+           iunit=iunit+1
+           if(alg.eq.'exc')then
+              string=' '
+              k=n_props_exc
+              call write_nonscalar_props(m_props,i,k,iblk,cml_av &
+                   ,cml2,cml_norm,blk_av,blk_norm,excite_filename,iunit,1,0 &
+                   ,string)
+           endif
+           ! itc
+           i=jitc
+           iunit=iunit+1
+           do j=1,nitc
+              string=' '
+              k=itc_prop_count(j)*(ntau-2*ntauskip)/itc_tau_skip(j)
+              call write_nonscalar_props(m_props,i,k,iblk,cml_av &
+                   ,cml2,cml_norm,blk_av,blk_norm,itc_filename(j),iunit,0,0 &
+                   ,string)
+           enddo
+           !           endif
+           !$omp end single copyprivate(etrial)
+           !           if(who.eq.'dmc') &
+           !                call MPI_BCAST(etrial,1,MPI_REAL8,0,MPI_COMM_WORLD,jrc)
            ! res
            call restart(1,iblk,who)
         endif
@@ -1310,6 +1315,7 @@ end subroutine normalizza_gofr
         ! -- need to think about this --
 
         ! scrive
+        print *,'restart ',what
 
         if(what.eq.1)then
            call savern(seed)
@@ -1393,14 +1399,18 @@ end subroutine normalizza_gofr
               read(8,*)cml_av(i),cml2(i)
            enddo
            do i=1,nproc
-              read(8,*)(seed_tot(j),j=8*(i-1)+1,8*(i-1)+8)
+              read(8,*)(seed_tot(j),j=8*(i-1)+1,8*(i-1)+8) ! why doesnt this fail for nproc>8*16 ?
            enddo
            if(ntheta.ne.0)read(8,*) ith,jth
            !endif
-           ! check ith,jth,and *esp* seed_tot (need to understand mpi_scatter)
+           ! check ith,jth
            etrial=cml_av(jetot)/cml_norm
            close(8)
-           !$omp end single copyprivate(iblk0,cml_norm,cml_av,cml2,seed_tot,ith,jth,etrial) 
+           ! need to replace this line
+           call MPI_SCATTER(seed_tot,8,MPI_INTEGER,seed,8,MPI_INTEGER &
+                ,0,MPI_COMM_WORLD,j)
+           !$omp end single copyprivate(iblk0,seed,ith,jth,etrial) 
+
            !call MPI_BCAST(etrial,1,MPI_REAL8  ,0,MPI_COMM_WORLD,j)
            !call MPI_BCAST(iblk0 ,1,MPI_INTEGER,0,MPI_COMM_WORLD,j)
            !call MPI_BCAST(ith,1,MPI_INTEGER,0,MPI_COMM_WORLD,j)
@@ -1735,7 +1745,7 @@ end subroutine normalizza_gofr
       return
       end
 
-      subroutine savern(iseed)
+subroutine savern(iseed)
         common /rnyucm/ m(4),l(4),nbit,irnyuc
         integer iseed(4)
         do 10 i=1,4
@@ -4966,6 +4976,7 @@ end subroutine normalizza_gofr
       real*8 gv(mdim,mnk),gvnorm2(mnk),th_stp(mdim),theta(mdim),aux,del
       common/scratch/gv,gvnorm2
       external r
+ 
       if(res_string.ne.'.')then
        if(iblk0.ne.1)then
         i0=ith

@@ -43,6 +43,8 @@
     parameter(mao=1) ! s,px,py,pz
     integer :: mitc,mitc_add
     parameter(mitc=1,mitc_add=2)
+!
+!  Check this - it gives problems
     integer :: mproc
     parameter(mproc=16)
 
@@ -276,6 +278,7 @@
 
 ! pezzi di funzione d'onda
     integer :: update_two_body
+!$omp threadprivate(update_two_body)
 
 
 ! mpi

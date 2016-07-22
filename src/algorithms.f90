@@ -3,7 +3,10 @@
 !
 subroutine dmc
   ! diffusion MC
-  use ewald
+  use ewald, only : nsg,nmult,mult_ave, mult_ave2, mult_norm, iblk0, nblk, nstp, nconf, mytid, &
+                    alg, mmstep, npnorm, elocal, etrial, delta, mmult, ntheta, res_string, mstack
+                    
+  implicit none
   real*8 p,wate(mstack),peso,uno
   integer iblk,istp,iconf,n,ncopies,mstep,mult(mstack)
   uno=1.d0

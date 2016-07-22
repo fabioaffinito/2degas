@@ -5,4 +5,16 @@
 	sigma
 	vmc
 end
+
+3. reptation.f90/subroutine restart
+Why doesnt this fail for nproc > 8*mproc ? (mproc=16)
+           integer seed_tot(8*mproc)
+           do i=1,nproc
+              read(8,*)(seed_tot(j),j=8*(i-1)+1,8*(i-1)+8) ! why doesnt this fail for nproc>8*16 ?
+           enddo
+In fact with -check it gives an error. On DEEP it doesnt compile
+(may have to make seed_tot allocatable)
+See also this link: 
+https://software.intel.com/en-us/forums/intel-fortran-compiler-for-linux-and-mac-os-x/topic/270714
+ 
 	

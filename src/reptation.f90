@@ -5305,22 +5305,36 @@ subroutine savern(iseed)
 !  of this about 30% is paho_orbitals
 ! Need to look at this
 !
+module slater_vars
+      use ewald,only : mdim,mnp,morbit
+      real(8) :: qx(mdim,mnp),qa(mdim,mdim,mnp,mnp),qb(mdim,mnp,mnp)
+      real(8) :: v(mdim,morbit,morbit),wrk(33*morbit)
+      complex*16 zv(mdim,morbit,morbit),zwrk(33*morbit)
+      !$omp threadprivate(qx,qa,qb,v,wrk,zv,zwrk)
+end module slater_vars
+
       subroutine slater_excitations(w)
 ! symmetric (i.e. if xi=ri+etaij*rij then xj=rj+etaji*rji) backflow
       use tools
       use ewald
+      use slater_vars
+      implicit none
       integer ib(mtypes),it,jt,idim,jdim,kdim,ip,jp,kp,ijcount,jf,kf,lf &
              ,jk,j1,j2,ipvt(morbit),info,i
       integer npa(ntypes,2),ipl(ntypes,2),ipf(ntypes,2)
-      real*8 qx(mdim,mnp),qa(mdim,mdim,mnp,mnp),qb(mdim,mnp,mnp),det(2) &
-            ,v(mdim,morbit,morbit),wrk(33*morbit),t,dt,ddt,kr,ckr,skr &
-            ,aux2,aux,w
+!      real*8 qx(mdim,mnp),qa(mdim,mdim,mnp,mnp),qb(mdim,mnp,mnp),det(2) &
+!            ,v(mdim,morbit,morbit),wrk(33*morbit),t,dt,ddt,kr,ckr,skr &
+!            ,aux2,aux,w
+!      complex*16 zv(mdim,morbit,morbit),zdet(2),zwrk(33*morbit)
+
       complex*16 sorb(morbit,morbit,ntypes), &
                  dsorb(mdim,morbit,morbit,ntypes), &
                  ddsorb(mdim,mdim,morbit,morbit,ntypes)
-      complex*16 zv(mdim,morbit,morbit),zdet(2),zwrk(33*morbit)
+       real*8 det(2), t,dt,ddt,kr,ckr,skr,aux2,aux,w
+       complex*16 zdet(2)
+
       integer jkho,jkpa
-      common /scratch/qx,qa,qb,v,wrk,zv,zwrk    ! commons are shared in openmp
+ !     common /scratch/qx,qa,qb,v,wrk,zv,zwrk    ! commons are shared in openmp
       common /c_g_switch/jkho,jkpa              !  
 
 ! indici
@@ -5433,8 +5447,8 @@ subroutine savern(iseed)
         enddo
        enddo
       enddo
-      w=-p_new(jltf)*2
-      if (mytid .ne. 0) print *,'mytid,w',mytid,w
+      w=-p_new(jltf)*2 ! problem with p_new
+      !if (mytid .ne. 0) print *,'mytid,w',mytid,w  
       w=exp(w)
       if(w.le.0d0)then
        w=0.d0
@@ -5619,15 +5633,20 @@ subroutine savern(iseed)
       subroutine paho_orbitals(jt,zdet)
       use tools
       use ewald
+      use slater_vars
+      implicit none
       integer ib(mtypes),it,jt,idim,jdim,kdim,ip,jp,kp,ijcount,jf,kf,lf &
              ,jk,j1,j2,ipvt(morbit),info,i
       integer npa(ntypes,2),ipl(ntypes,2),ipf(ntypes,2)
-      real*8 qx(mdim,mnp),qa(mdim,mdim,mnp,mnp),qb(mdim,mnp,mnp),det(2) &
-            ,v(mdim,morbit,morbit),wrk(33*morbit),t,dt,ddt,kr,ckr,skr &
-            ,aux2,aux
-      complex*16 zv(mdim,morbit,morbit),zdet(2),zwrk(33*morbit)
+!      real*8 qx(mdim,mnp),qa(mdim,mdim,mnp,mnp),qb(mdim,mnp,mnp),det(2) &
+!            ,v(mdim,morbit,morbit),wrk(33*morbit),t,dt,ddt,kr,ckr,skr &
+!            ,aux2,aux
+!      complex*16 zv(mdim,morbit,morbit),zdet(2),zwrk(33*morbit)
+       real*8 det(2),t,dt,ddt,kr,ckr,skr,aux2,aux
+       complex*16 zdet(2)
+
       integer jkho,jkpa
-      common /scratch/qx,qa,qb,v,wrk,zv,zwrk
+!      common /scratch/qx,qa,qb,v,wrk,zv,zwrk
       common /c_g_switch/jkho,jkpa
 ! indici
        iex=1

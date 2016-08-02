@@ -19,4 +19,6 @@ https://software.intel.com/en-us/forums/intel-fortran-compiler-for-linux-and-mac
 
 4. check SAVE variables, esp in two_body. For OMP these are shared by default. 
 5. floating point exception in slater excitations, reptation 5436. Problem with p_new
+
+6. REstart from second thread is wrong
 	

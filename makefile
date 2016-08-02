@@ -32,6 +32,6 @@ $(OBJDIR)/%.o:$(SRCDIR)/%.f90
 #
 
 clean:
-	-rm $(F90_OBJS) *.mod $(EXE) 
+	-rm $(F90_OBJS) *.mod 
 
 

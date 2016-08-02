@@ -30,7 +30,7 @@ subroutine input
      write(*,*) 'Error: nthreads ',nproc, '(nproc) > ',mproc,' (mproc)'
      stop
   endif
- !$OMP single 
+!$OMP single 
 
   !!      if(mytid.eq.0)then
 
@@ -66,7 +66,7 @@ subroutine input
   !      call mpi_bcast(restart_dir,len(restart_dir), MPI_CHARACTER,0,MPI_COMM_WORLD,jrc)
   restart_dir=trim(restart_dir)//'/' 
 
-!$OMP end single copyprivate(seed)
+!$OMP end single copyprivate(seed,restart_dir,runid)
 
   ! default
   update_two_body=1
@@ -562,7 +562,7 @@ subroutine input
 
 !$omp end single copyprivate(v0, &
 !$omp el,eli,nk,knorm2,kvec,ktens, & 
-!$omp irhok,pp_dist, ntypes,typename, np,hbs2m, x_file, &
+!$omp nrhok,irhok,pp_dist, ntypes,typename, np,hbs2m, x_file, &
 !$omp nk_ewald, ngrid, drt, ut, &   
 !$omp iv2table, tail, iexp, v2value, iu2table, iu3table, ibckf, iubtable, ntheta )
 
@@ -758,14 +758,14 @@ subroutine input
               enddo
            enddo
         !endif
-!$omp end single copyprivate(gnorm2,gvec)
+!$omp end single copyprivate(gnorm2,gvec,gtens)
+!omp gtens?
 !        call MPI_BCAST(gnorm2,nk,MPI_REAL8,0,MPI_COMM_WORLD,jrc)
 !        call MPI_BCAST(gvec,mdim*nk,MPI_REAL8,0,MPI_COMM_WORLD,jrc)
 !------
      endif
   endif
 
-!!$omp end parallel
   return
 end subroutine input
 
@@ -803,6 +803,7 @@ end subroutine kread
 
 
 subroutine readwords(iunit,mword,words,eof_flag,record)
+  implicit none
   ! read words from record. if iunit.ne.0 record is read from unit
   integer iunit,mword,iscan,n_items,i,lrec,j,eof_flag
   character*80 record
@@ -870,7 +871,7 @@ subroutine t_read(file,itable,ntable,iunit)
   ! if not add a new table
   ntable=ntable+1
   read(file,'(a)')tablename(ntable)
-  if(mytid.eq.0)then
+  !if(mytid.eq.0)then                 
      open(iunit,file=file,status='old')
      read(iunit,*)ngrid(ntable),drt
      do it=0,ngrid(ntable)
@@ -893,7 +894,7 @@ subroutine t_read(file,itable,ntable,iunit)
         write(6,*)nk_ewald(ntable),' punti in spazio k'
      endif
 1    close(iunit)
-  endif
+  !endif
   ! questi MPI_BCAST funzionano solo per la parte in spazio r
  ! call MPI_BCAST(nk_ewald(ntable),1,MPI_INTEGER,0 &
  !      ,MPI_COMM_WORLD,jrc)
@@ -903,7 +904,8 @@ subroutine t_read(file,itable,ntable,iunit)
   !     ,MPI_COMM_WORLD,jrc)
   drti=1.d0/drt
   drti2=2.d0*drti**2
-  if(mytid.eq.0)write(6,*)'ECCOFATTO'
+  !if(mytid.eq.0)write(6,*)'ECCOFATTO'
+  write(6,*) 'ECCOFATTO' ! should be in omp single
   return
 end subroutine t_read
 

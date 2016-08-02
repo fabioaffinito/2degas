@@ -16,5 +16,7 @@ In fact with -check it gives an error. On DEEP it doesnt compile
 (may have to make seed_tot allocatable)
 See also this link: 
 https://software.intel.com/en-us/forums/intel-fortran-compiler-for-linux-and-mac-os-x/topic/270714
- 
+
+4. check SAVE variables, esp in two_body. For OMP these are shared by default. 
+5. floating point exception in slater excitations, reptation 5436. Problem with p_new
 	

@@ -1,6 +1,6 @@
 #!/bin/bash
 module purge
-module load autoload intelmpi
+module load intel
 module load mkl
 cp makedefs/make.defs.omp make.defs
 make 

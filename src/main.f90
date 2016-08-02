@@ -2,7 +2,8 @@ program  mockup
 use ewald, only: nproc, runid, ndim, restart_dir
 implicit none
 
-!$OMP parallel default(private) shared(nproc,runid,ndim,restart_dir)
+!!$OMP parallel default(private) shared(nproc,runid,restart_dir,ndim)
+!$OMP parallel default(private) shared(nproc,ndim)
 
 call input
 call sonaseppia

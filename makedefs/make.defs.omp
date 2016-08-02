@@ -8,7 +8,8 @@ EXE=rept90-omp.x
 #FPP=-fpp -DBLAS_INTERNAL -DDEBUG
 FPP=-fpp
 
-F90FLAGS= -O0 -g -qopenmp
+#F90FLAGS= -O0 -g -qopenmp -fpe0 -traceback
+F90FLAGS= -O0 -g -qopenmp 
 
 ifdef BLAS_INTERNAL
    EXE=rept90-int.x

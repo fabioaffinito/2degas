@@ -13,11 +13,11 @@
 ! mnp=         166
 ! ndim=2
 ! mdim=           2
-module three_body_vars
+!module three_body_vars
 
-real(8), allocatable :: g(:,:),dg(:,:,:,:),ddg(:,:,:)
+!real(8), allocatable :: g(:,:),dg(:,:,:,:),ddg(:,:,:)
 
-end module three_body_vars
+!end module three_body_vars
 
 subroutine three_body
   use ewald
@@ -71,14 +71,14 @@ subroutine three_body
 
 !   call system_clock(t1,count_rate)
 
-!$OMP PARALLEL shared(g,ddg,dg) 
-!$OMP do  collapse(2)
+!!$OMP PARALLEL shared(g,ddg,dg) 
+!!$OMP do  collapse(2)
   do ip=1,mnp ! ipfrst(1),iplst(ntypes)
      do idim=1,mdim ! ndim
         g(idim,ip)=0.d0
      enddo
   enddo
-!$OMP END DO NOWAIT
+!!$OMP END DO NOWAIT
 
 !    call system_clock(t2)
 
@@ -90,7 +90,7 @@ subroutine three_body
 !schedule schemes
 !
  
-!$OMP do 
+!!OMP do 
   do ip=1,mnp ! ipfrst(1),iplst(ntypes)
      do jp=1,mnp ! ipfrst(1),iplst(ntypes)
         do idim=1,mdim ! ndim
@@ -101,8 +101,8 @@ subroutine three_body
         enddo
      enddo
   enddo
-!$OMP END DO
-!$OMP END PARALLEL
+!!OMP END DO
+!!OMP END PARALLEL
 
 
 !  call system_clock(t3)
@@ -123,7 +123,7 @@ subroutine three_body
               ! remove a two-body term
               ddt=2*(t*t+4*pp_r(ijcount)*t*dt+pp_r(ijcount)**2*(dt**2+ddt*t))
               dt=2*t*(t+pp_r(ijcount)*dt)
-              t=(t*pp_r(ijcount))**2
+              t=(t*pp_r(ijcount))**2  
               p_new(jltf)=p_new(jltf)+t
               do idim=1,ndim
                  g_new(idim,ip)=g_new(idim,ip)+dt*pp_rvec(idim,ijcount)

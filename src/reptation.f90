@@ -39,7 +39,7 @@ subroutine sonaseppia
   do
      call readwords(2,mword,word,i,record)
      nwords=nwords+1
-     if ((i.eq.1) .or. (word(1).eq.'end') .or. (j.eq.maxlist)) exit
+     if ((i.eq.1) .or. (word(1).eq.'end') .or. (nwords.eq.maxlist)) exit
      wordlist(nwords,:)=word(:)
   enddo
   close(2)
@@ -644,7 +644,7 @@ end subroutine write_conf
 !     endif
        
       return
-      end
+      end subroutine compute_properties
 
       subroutine kinetic
         use ewald
@@ -696,76 +696,6 @@ end subroutine write_conf
 
       ! three_body and makeg, dotg were here (now in three_body.f90)
 
-      subroutine two_body
-        use ewald, only : update_two_body,nptot,mdim,ntypes,iu2table,iinc,ipfrst,iplst, &
-                         ut,ngrid,mgrid,pp_ind,pp_rem,drti,drti2,pp_byr,ndim,pp_rvec,iu2table, &
-                         p_new, hbs2m, g_new, jltf, h_new, mnp, mtypes
-        use utils
-        implicit none
-        real*8 t,dt,ddt,ltf,g(mdim,mnp),h(mtypes)
-        integer i,ijcount,it,jt,ip,jp,idim
-        save ltf,g,h
-        if(update_two_body.ne.0)then
-           ltf=0.d0
-           call r_set(nptot*mdim,g,0.d0)
-           call r_set(ntypes,h,0.d0)
-           ijcount=0
-           do it=1,ntypes
-              i=iu2table(it,it,iinc)
-              if(i.ne.0)then
-                 do ip=ipfrst(it),iplst(it)
-                    do jp=ip+1,iplst(it)
-                       ijcount=ijcount+1 
-                       call getf(ut(0,1,i),ngrid(i),mgrid,pp_ind(ijcount) &
-                            ,pp_rem(ijcount),drti,drti2,t,dt,ddt) ! problem here pp_ind is wrong
-                       ltf=ltf+t
-                       dt=dt*pp_byr(ijcount)
-                       do idim=1,ndim
-                          g(idim,ip)=g(idim,ip)+dt*pp_rvec(idim,ijcount)
-                          g(idim,jp)=g(idim,jp)-dt*pp_rvec(idim,ijcount)
-                       enddo
-                       h(it)=h(it)+2*(ddt+(ndim-1)*dt)
-                    enddo
-                 enddo
-              endif
-              do jt=it+1,ntypes
-                 i=iu2table(it,jt,iinc)
-                 if(i.ne.0)then
-                    do ip=ipfrst(it),iplst(it)
-                       do jp=ipfrst(jt),iplst(jt)
-                          ijcount=ijcount+1
-                          call getf(ut(0,1,i),ngrid(i),mgrid,pp_ind(ijcount) &
-                               ,pp_rem(ijcount),drti,drti2,t,dt,ddt)
-                          ltf=ltf+t
-                          dt=dt*pp_byr(ijcount)
-                          do idim=1,ndim
-                             g(idim,ip)=g(idim,ip)+dt*pp_rvec(idim,ijcount)
-                             g(idim,jp)=g(idim,jp)-dt*pp_rvec(idim,ijcount)
-                          enddo
-                          h(it)=h(it)+ddt+(ndim-1)*dt
-                          h(jt)=h(jt)+ddt+(ndim-1)*dt
-                       enddo
-                    enddo
-                 endif
-              enddo
-           enddo
-        endif
-        p_new(jltf)=p_new(jltf)+ltf
-        do it=1,ntypes
-           if(hbs2m(it).ne.0)then
-              do ip=ipfrst(it),iplst(it)
-                 do idim=1,ndim
-                    g_new(idim,ip)=g_new(idim,ip)+g(idim,ip)
-                 enddo
-              enddo
-           endif
-        enddo
-        do it=1,ntypes
-           if(hbs2m(it).ne.0)h_new(it)=h_new(it)+h(it)
-        enddo
-        return
-      end subroutine two_body
-
 ! used in DEEP
       subroutine trial_function
       use ewald
@@ -774,6 +704,7 @@ end subroutine write_conf
       real*8 w 
 ! initialize
       p_new(jltf)=0.d0
+       
       call r_set(mdim*nptot,g_new,0.d0)
       call r_set(ntypes,h_new,0.d0)
       s_new=1.d0
@@ -822,131 +753,123 @@ subroutine normalizza_gofr(g,m,n)
   return
 end subroutine normalizza_gofr
 
- 
 
-
-
-
-
-
-
-
-      subroutine potential
-      use ewald
-      use utils
-      integer it,ip,jt,jp,ijcount,idim,i,ik,ik1,ik2,iv2k
-      real*8 f,p_aux(mtypes),p2(0:mtypes),qr,cqr,aux,v
-      save p2
-      if(update_two_body.ne.0)then
-       call r_set(mtypes+1,p2(0),0.d0)
-! realspace pair potential
-       ijcount=0
-       do it=1,ntypes
+subroutine potential
+  use ewald
+  use utils
+  integer it,ip,jt,jp,ijcount,idim,i,ik,ik1,ik2,iv2k
+  real*8 f,p_aux(mtypes),p2(0:mtypes),qr,cqr,aux,v
+  save p2
+  if(update_two_body.ne.0)then
+     call r_set(mtypes+1,p2(0),0.d0)
+     ! realspace pair potential
+     ijcount=0
+     do it=1,ntypes
         i=iv2table(it,it,iinc)
         v=v2value(it,it,iinc)
         if(i.ne.0)then
-         aux=np(it)*(np(it)-1)*0.5d0*tail(i)*v
-         p2(it)=p2(it)+aux
-         p2(0)=p2(0)+aux
-         do ip=ipfrst(it),iplst(it)
-          do jp=ip+1,iplst(it)
-           ijcount=ijcount+1
-           call getf_0(ut(0,1,i),ngrid(i),mgrid,iexp(i),pp_ind(ijcount) &
+           aux=np(it)*(np(it)-1)*0.5d0*tail(i)*v
+           p2(it)=p2(it)+aux
+           p2(0)=p2(0)+aux
+           do ip=ipfrst(it),iplst(it)
+              do jp=ip+1,iplst(it)
+                 ijcount=ijcount+1
+                 call getf_0(ut(0,1,i),ngrid(i),mgrid,iexp(i),pp_ind(ijcount) &
                       ,pp_rem(ijcount),pp_byr(ijcount),drti,f)
-           p2(it)=p2(it)+f*v        ! (f+tail(i))*v
-           p2(0)=p2(0)+f*v          ! (f+tail(i))*v
-          enddo
-         enddo
+                 p2(it)=p2(it)+f*v        ! (f+tail(i))*v
+                 p2(0)=p2(0)+f*v          ! (f+tail(i))*v
+              enddo
+           enddo
         endif
         do jt=it+1,ntypes
-         i=iv2table(it,jt,iinc)
-         v=v2value(it,jt,iinc)
-         if(i.ne.0)then
-          aux=np(it)*np(jt)*tail(i)*v
-          p2(it)=p2(it)+0.5d0*aux
-          p2(jt)=p2(jt)+0.5d0*aux
-          p2(0)=p2(0)+aux
-          do ip=ipfrst(it),iplst(it)
-           do jp=ipfrst(jt),iplst(jt)
-            ijcount=ijcount+1
-            call getf_0(ut(0,1,i),ngrid(i),mgrid,iexp(i),pp_ind(ijcount) &
-                       ,pp_rem(ijcount),pp_byr(ijcount),drti,f)
-            p2(it)=p2(it)+0.5d0*f*v ! (f+tail(i))*v
-            p2(jt)=p2(jt)+0.5d0*f*v ! (f+tail(i))*v
-            p2(0)=p2(0)+f*v         ! (f+tail(i))*v
-           enddo
-          enddo
-         endif
+           i=iv2table(it,jt,iinc)
+           v=v2value(it,jt,iinc)
+           if(i.ne.0)then
+              aux=np(it)*np(jt)*tail(i)*v
+              p2(it)=p2(it)+0.5d0*aux
+              p2(jt)=p2(jt)+0.5d0*aux
+              p2(0)=p2(0)+aux
+              do ip=ipfrst(it),iplst(it)
+                 do jp=ipfrst(jt),iplst(jt)
+                    ijcount=ijcount+1
+                    call getf_0(ut(0,1,i),ngrid(i),mgrid,iexp(i),pp_ind(ijcount) &
+                         ,pp_rem(ijcount),pp_byr(ijcount),drti,f)
+                    p2(it)=p2(it)+0.5d0*f*v ! (f+tail(i))*v
+                    p2(jt)=p2(jt)+0.5d0*f*v ! (f+tail(i))*v
+                    p2(0)=p2(0)+f*v         ! (f+tail(i))*v
+                 enddo
+              enddo
+           endif
         enddo
-       enddo
-! spazio k
-       do it=1,ntypes
+     enddo
+     ! spazio k
+     do it=1,ntypes
         do jt=1,ntypes
-         iv2k=iv2table(it,jt,iinc)
-         if(nk_ewald(iv2k).ne.0)then
-          aux=0.d0
-          do ik=1,nk_ewald(iv2k)
-           ik2=ik*2
-           ik1=ik2-1
-           aux=aux+ut(ik+ngrid(iv2k),1,iv2k) &
-                  *(rhok(ik1,it)*rhok(ik1,jt)+rhok(ik2,it)*rhok(ik2,jt))
-          enddo
-          p2(it)=p2(it)+aux &
-                +ut(ngrid(iv2k)+nk_ewald(iv2k)+1,1,iv2k)*npnorm!OKKIO
-          p2(0)=p2(0)+aux &
-               +ut(ngrid(iv2k)+nk_ewald(iv2k)+1,1,iv2k)*npnorm!OKKIO
-         endif
+           iv2k=iv2table(it,jt,iinc)
+           if(nk_ewald(iv2k).ne.0)then
+              aux=0.d0
+              do ik=1,nk_ewald(iv2k)
+                 ik2=ik*2
+                 ik1=ik2-1
+                 aux=aux+ut(ik+ngrid(iv2k),1,iv2k) &
+                      *(rhok(ik1,it)*rhok(ik1,jt)+rhok(ik2,it)*rhok(ik2,jt))
+              enddo
+              p2(it)=p2(it)+aux &
+                   +ut(ngrid(iv2k)+nk_ewald(iv2k)+1,1,iv2k)*npnorm!OKKIO
+              p2(0)=p2(0)+aux &
+                   +ut(ngrid(iv2k)+nk_ewald(iv2k)+1,1,iv2k)*npnorm!OKKIO
+           endif
         enddo
-       enddo
-       p_new(jpot(0))=p2(0)
-      endif
-      do i=1,ntypes
-       p_aux(i)=p2(i)
-      enddo
-! particle-site potential
-      ijcount=0
-      do it=1,ntypes
-       do jt=1,nstypes
+     enddo
+     p_new(jpot(0))=p2(0)
+  endif
+  do i=1,ntypes
+     p_aux(i)=p2(i)
+  enddo
+  ! particle-site potential
+  ijcount=0
+  do it=1,ntypes
+     do jt=1,nstypes
         i=ivpstable(it,jt,iinc)
         v=vpsvalue(it,jt,iinc)
         if(i.ne.0)then
-         aux=np(it)*ns(jt)*tail(i)*v
-         p_aux(it)=p_aux(it)+aux
-         p_new(jpot(0))=p_new(jpot(0))+aux
-         do ip=ipfrst(it),iplst(it)
-          do jp=isfrst(jt),islst(jt)
-           ijcount=ijcount+1
-           call getf_0(ut(0,1,i),ngrid(i),mgrid,iexp(i),ps_ind(ijcount) &
+           aux=np(it)*ns(jt)*tail(i)*v
+           p_aux(it)=p_aux(it)+aux
+           p_new(jpot(0))=p_new(jpot(0))+aux
+           do ip=ipfrst(it),iplst(it)
+              do jp=isfrst(jt),islst(jt)
+                 ijcount=ijcount+1
+                 call getf_0(ut(0,1,i),ngrid(i),mgrid,iexp(i),ps_ind(ijcount) &
                       ,ps_rem(ijcount),ps_byr(ijcount),drti,f)
-           p_aux(it)=p_aux(it)+f*v
-           p_new(jpot(0))=p_new(jpot(0))+f*v
-          enddo
-         enddo
+                 p_aux(it)=p_aux(it)+f*v
+                 p_new(jpot(0))=p_new(jpot(0))+f*v
+              enddo
+           enddo
         endif
-       enddo
-      enddo
-! external potential vext*cos(qvext*r_i)
-      do it=1,ntypes
-       if(ivext(it).ne.0)then
+     enddo
+  enddo
+  ! external potential vext*cos(qvext*r_i)
+  do it=1,ntypes
+     if(ivext(it).ne.0)then
         cqr=0.d0
         do ip=ipfrst(it),iplst(it)
-         cqr=cqr+cos(qvext(it,iinc)*x_new(1,ip))
+           cqr=cqr+cos(qvext(it,iinc)*x_new(1,ip))
         enddo
         p_aux(it)=p_aux(it)+vext(it,iinc)*cqr
         p_new(jpot(0))=p_new(jpot(0))+vext(it,iinc)*cqr
-       endif
-      enddo
-! potential per particle
-      do it=1,ntypes
-       if(jpot(it).ne.0)p_new(jpot(it))=p_aux(it)/np(it)
-      enddo
-      p_new(jpot(0))=(p_new(jpot(0))+v0)/npnorm
-!     if(ntheta.ne.0)then
-!      if(alg.eq.'dmc')
-!    &   p_new(jpot(0))=p_new(jpot(0))+grad2_ph*hbs2m(it)/npnorm
-!     endif
-      return
-      end
+     endif
+  enddo
+  ! potential per particle
+  do it=1,ntypes
+     if(jpot(it).ne.0)p_new(jpot(it))=p_aux(it)/np(it)
+  enddo
+  p_new(jpot(0))=(p_new(jpot(0))+v0)/npnorm
+  !     if(ntheta.ne.0)then
+  !      if(alg.eq.'dmc')
+  !    &   p_new(jpot(0))=p_new(jpot(0))+grad2_ph*hbs2m(it)/npnorm
+  !     endif
+  return
+end subroutine potential
 
       subroutine getf_0(t,ngrid,mgrid,iexp,ind,rem,byr,drti,f)
 ! spline interpolation from table
@@ -964,8 +887,9 @@ end subroutine normalizza_gofr
         integer i,ind,ngrid,mgrid
         real*8 f,df,ddf,t(0:mgrid,4),drti,drti2,rm,rem
         i=min(ngrid,ind)
+        !print *,'ngrid=',ngrid,'ind=',ind
         rm=rem*drti
-        f=t(i,1)+rm*(t(i,2)+rm*(  t(i,3)+rm*   t(i,4) ))
+        f=t(i,1)+rm*(t(i,2)+rm*(  t(i,3)+rm*   t(i,4) ))     ! valgrind gives a prob here
         df=         (t(i,2)+rm*(2*t(i,3)+rm*(3*t(i,4))))*drti
         ddf=                     (t(i,3)+rm*(3*t(i,4))) *drti2
         return
@@ -976,6 +900,7 @@ end subroutine normalizza_gofr
         ! (here there is only the distance from the origin)
         use ewald
         use utils
+        implicit none
         integer idim,ip,jp,it,jt,ijcount,i,ik,ik2,ik1
         real*8 kr
         save
@@ -987,7 +912,7 @@ end subroutine normalizza_gofr
                  do ip=ipfrst(it),iplst(it)
                     do jp=ip+1,iplst(it)
                        ijcount=ijcount+1
-                       pp_r(ijcount)=0.d0
+                       pp_r(ijcount)=0.d0                  
                        do idim=1,ndim
                           pp_rvec(idim,ijcount)=x_new(idim,ip)-x_new(idim,jp)
                           pp_rvec(idim,ijcount)=pp_rvec(idim,ijcount) &
@@ -1069,7 +994,7 @@ end subroutine normalizza_gofr
            enddo
         enddo
         ! rhok
-        if(nrhok.ne.0)then
+        if(nrhok.ne.0)then   
            do it=1,ntypes
               if(irhok(it).ne.0)then
                  call r_set(2*nk,rhok(1,irhok(it)),0.d0)
@@ -1117,312 +1042,316 @@ end subroutine normalizza_gofr
            enddo
         endif
         return
-      end subroutine distances
+end subroutine distances
 
       ! used in DEEP
-      subroutine averages(what,iblk,who,wate)
-        use ewald, only : n_props, cml_av, cml2, cml_norm, age, max_nconf, min_nconf, nage, &
-             mytid, mgrid_gofr,ngofr, nconf, nrhok, m_props, nk, rhok_filename,&
-             jgofr, der_filename, jmstar, nmstar, ntau, ntauskip, imstar_tau_skip, &
-             mstar_filename, jcmass_z, ncmass, typename, ndim, cmass_z_filename, &
-             jcmass_d,ncmass,ncm_ntauskip, icmass_tau_skip, cmass_filename, &
-             jexcite, alg, n_props_exc, excite_filename, &
-             jitc, nitc, itc_prop_count, itc_tau_skip, itc_filename, &
-             etrial, p_old, jetot,n_scalar_props,name, jrhok, gofr_filename, jder, nder, &
-             dername, cm_ntauskip 
-        use utils
-        use mpi
-        implicit none 
-        integer what,iblk,i,j,k,it,jt,jrc,kk,iunit
-        real*8 blk_av(m_props),blk_norm,tot_av(m_props),tot_norm,err,wate
-        character*3 who
-        character*7 string
-        save blk_av,blk_norm
-        if(what.eq.1)then
-           ! reset cumulative averages if iblk=1
-           if(iblk.eq.1)then
-              call r_set(n_props,cml_av,0.d0)
-              call r_set(n_props,cml2,0.d0)
-              cml_norm=0.d0
-              if(who.eq.'rmc')age=0
-           endif
-           ! reset block averages
-           call r_set(n_props,blk_av,0.d0)
-           blk_norm=0.d0
-           if(who.eq.'dmc')then
-              max_nconf=0
-              min_nconf=10000000
-              nage=0
-           endif
-        elseif(what.eq.2)then
-           ! update block averages
-           do i=1,n_props
-              blk_av(i)=blk_av(i)+p_old(i)*wate
-           enddo
-           blk_norm=blk_norm+wate
-        elseif(what.eq.3)then
-           ! compute and write cumulative averages and estimated errors
-           call MPI_REDUCE(blk_av,tot_av,n_props,MPI_REAL8,MPI_SUM &
-                ,0,MPI_COMM_WORLD,j)
-           call MPI_REDUCE(blk_norm,tot_norm,1,MPI_REAL8,MPI_SUM &
-                ,0,MPI_COMM_WORLD,j)
-           !$omp single 
-           !          if(mytid.eq.0)then
-           blk_norm=tot_norm
-           do i=1,n_props
-              blk_av(i)=tot_av(i)
-           enddo
-           call normalizza_gofr(blk_av(jgofr),mgrid_gofr,ngofr)
-           do i=1,n_props
-              cml_av(i)=cml_av(i)+blk_av(i)
-              cml2(i)=cml2(i)+blk_av(i)**2/blk_norm
-           enddo
-           cml_norm=cml_norm+blk_norm
-           if(who.eq.'vmc')then
-              write(6,*)'===>> vmc block ',iblk
-           elseif(who.eq.'der')then
-              write(6,*)'===>> rmcder block ',iblk
-           elseif(who.eq.'dmc')then
-              etrial=cml_av(jetot)/cml_norm
-              write(6,*)'===>> dmc block ',iblk &
-                   ,' nconf = ',nconf &
-                   ,' mnnc, mxnc = ',min_nconf,max_nconf &
-                   ,' nage = ',nage
-           elseif(who.eq.'rmc')then
-              write(6,*)'===>> rmc block ',iblk
-           endif
-           do i=1,n_scalar_props
-              if(iblk.gt.1)then
-                 err=sqrt(abs((cml2(i)/cml_norm-(cml_av(i)/cml_norm)**2) &
-                      /(iblk-1)))
-              else
-                 err=0.d0
-              endif
-              write(6,'(2e19.11,e9.2,e10.3,2x,a20)')blk_av(i)/blk_norm &
-                   ,cml_av(i)/cml_norm &
-                   ,err,blk_norm,name(i)
-           enddo
-           ! files for non-scalar averages
-           iunit=50
-           ! rhok
-           i=jrhok
-           iunit=iunit+1
-           do j=1,nrhok
-              string=' '
-              call write_nonscalar_props(m_props,i,2*nk,iblk,cml_av &
-                   ,cml2,cml_norm,blk_av,blk_norm,rhok_filename(j),iunit,0,0 &
-                   ,string)
-           enddo
-           ! gofr
-           i=jgofr
-           iunit=iunit+1
-           do j=1,ngofr
-              string=' '
-              call write_nonscalar_props(m_props,i,mgrid_gofr+1,iblk,cml_av &
-                   ,cml2,cml_norm,blk_av,blk_norm,gofr_filename(j),iunit,0,0 &
-                   ,string)
-           enddo
-           ! derivate
-           i=jder
-           iunit=iunit+1
-           do j=1,nder
-              string=dername(j)
-              k=10
-              call write_nonscalar_props(m_props,i,k,iblk,cml_av &
-                   ,cml2,cml_norm,blk_av,blk_norm,der_filename(j),iunit,0,1 &
-                   ,string)
-           enddo
-           ! mstar
-           i=jmstar
-           iunit=iunit+1
-           do j=1,nmstar
-              string=' '
-              k=(ntau-2*ntauskip)/imstar_tau_skip(j)
-              call write_nonscalar_props(m_props,i,k,iblk,cml_av &
-                   ,cml2,cml_norm,blk_av,blk_norm,mstar_filename(j),iunit,0,0 &
-                   ,string)
-           enddo
-           ! cmass z
-           i=jcmass_z
-           iunit=iunit+1
-           do j=1,ncmass
-              string=typename(j)
-              k=2*ndim
-              call write_nonscalar_props(m_props,i,k,iblk,cml_av &
-                   ,cml2,cml_norm,blk_av,blk_norm,cmass_z_filename(j),iunit,1 &
-                   ,0,string)
-           enddo
-           ! cmass diffusion
-           i=jcmass_d
-           iunit=iunit+1
-           do j=1,ncmass
-              string=' '
-              kk=0
-              do k=1,ncm_ntauskip
-                 kk=kk+(ntau-2*cm_ntauskip(k,j))/icmass_tau_skip(j)
-              enddo
-              call write_nonscalar_props(m_props,i,kk,iblk,cml_av &
-                   ,cml2,cml_norm,blk_av,blk_norm,cmass_filename(j),iunit,0,0 &
-                   ,string)
-           enddo
-           ! excite
-           i=jexcite
-           iunit=iunit+1
-           if(alg.eq.'exc')then
-              string=' '
-              k=n_props_exc
-              call write_nonscalar_props(m_props,i,k,iblk,cml_av &
-                   ,cml2,cml_norm,blk_av,blk_norm,excite_filename,iunit,1,0 &
-                   ,string)
-           endif
-           ! itc
-           i=jitc
-           iunit=iunit+1
-           do j=1,nitc
-              string=' '
-              k=itc_prop_count(j)*(ntau-2*ntauskip)/itc_tau_skip(j)
-              call write_nonscalar_props(m_props,i,k,iblk,cml_av &
-                   ,cml2,cml_norm,blk_av,blk_norm,itc_filename(j),iunit,0,0 &
-                   ,string)
-           enddo
-           !           endif
-           !$omp end single copyprivate(etrial)
-           !           if(who.eq.'dmc') &
-           !                call MPI_BCAST(etrial,1,MPI_REAL8,0,MPI_COMM_WORLD,jrc)
-           ! res
-           call restart(1,iblk,who)
+subroutine averages(what,iblk,who,wate)
+  use ewald, only : n_props, cml_av, cml2, cml_norm, age, max_nconf, min_nconf, nage, &
+       mytid, mgrid_gofr,ngofr, nconf, nrhok, m_props, nk, rhok_filename,&
+       jgofr, der_filename, jmstar, nmstar, ntau, ntauskip, imstar_tau_skip, &
+       mstar_filename, jcmass_z, ncmass, typename, ndim, cmass_z_filename, &
+       jcmass_d,ncmass,ncm_ntauskip, icmass_tau_skip, cmass_filename, &
+       jexcite, alg, n_props_exc, excite_filename, &
+       jitc, nitc, itc_prop_count, itc_tau_skip, itc_filename, &
+       etrial, p_old, jetot,n_scalar_props,name, jrhok, gofr_filename, jder, nder, &
+       dername, cm_ntauskip 
+  use utils
+  use mpi
+  implicit none 
+  integer what,iblk,i,j,k,it,jt,jrc,kk,iunit
+  real*8 blk_av(m_props),blk_norm,tot_av(m_props),tot_norm,err,wate
+  character*3 who
+  character*7 string
+  save blk_av,blk_norm
+  if(what.eq.1)then
+     ! reset cumulative averages if iblk=1
+     if(iblk.eq.1)then
+        call r_set(n_props,cml_av,0.d0)
+        call r_set(n_props,cml2,0.d0)
+        cml_norm=0.d0
+        if(who.eq.'rmc')age=0
+     endif
+     ! reset block averages
+     call r_set(n_props,blk_av,0.d0)
+     blk_norm=0.d0
+     if(who.eq.'dmc')then
+        max_nconf=0
+        min_nconf=10000000
+        nage=0
+     endif
+  elseif(what.eq.2)then
+     ! update block averages
+     do i=1,n_props
+        blk_av(i)=blk_av(i)+p_old(i)*wate
+     enddo
+     blk_norm=blk_norm+wate
+  elseif(what.eq.3)then
+     ! compute and write cumulative averages and estimated errors
+     call MPI_REDUCE(blk_av,tot_av,n_props,MPI_REAL8,MPI_SUM &
+          ,0,MPI_COMM_WORLD,j)
+     call MPI_REDUCE(blk_norm,tot_norm,1,MPI_REAL8,MPI_SUM &
+          ,0,MPI_COMM_WORLD,j)
+     !$omp single 
+     !          if(mytid.eq.0)then
+     blk_norm=tot_norm
+     do i=1,n_props
+        blk_av(i)=tot_av(i)
+     enddo
+     call normalizza_gofr(blk_av(jgofr),mgrid_gofr,ngofr)
+     do i=1,n_props
+        cml_av(i)=cml_av(i)+blk_av(i)
+        cml2(i)=cml2(i)+blk_av(i)**2/blk_norm
+     enddo
+     cml_norm=cml_norm+blk_norm
+     if(who.eq.'vmc')then
+        write(6,*)'===>> vmc block ',iblk
+     elseif(who.eq.'der')then
+        write(6,*)'===>> rmcder block ',iblk
+     elseif(who.eq.'dmc')then
+        etrial=cml_av(jetot)/cml_norm
+        write(6,*)'===>> dmc block ',iblk &
+             ,' nconf = ',nconf &
+             ,' mnnc, mxnc = ',min_nconf,max_nconf &
+             ,' nage = ',nage
+     elseif(who.eq.'rmc')then
+        write(6,*)'===>> rmc block ',iblk
+     endif
+     do i=1,n_scalar_props
+        if(iblk.gt.1)then
+           err=sqrt(abs((cml2(i)/cml_norm-(cml_av(i)/cml_norm)**2) &
+                /(iblk-1)))
+        else
+           err=0.d0
         endif
+        write(6,'(2e19.11,e9.2,e10.3,2x,a20)')blk_av(i)/blk_norm &
+             ,cml_av(i)/cml_norm &
+             ,err,blk_norm,name(i)
+     enddo
+     ! files for non-scalar averages
+     iunit=50
+     ! rhok
+     i=jrhok
+     iunit=iunit+1
+     do j=1,nrhok
+        string=' '
+        call write_nonscalar_props(m_props,i,2*nk,iblk,cml_av &
+             ,cml2,cml_norm,blk_av,blk_norm,rhok_filename(j),iunit,0,0 &
+             ,string)
+     enddo
+     ! gofr
+     i=jgofr
+     iunit=iunit+1
+     do j=1,ngofr
+        string=' '
+        call write_nonscalar_props(m_props,i,mgrid_gofr+1,iblk,cml_av &
+             ,cml2,cml_norm,blk_av,blk_norm,gofr_filename(j),iunit,0,0 &
+             ,string)
+     enddo
+     ! derivate
+     i=jder
+     iunit=iunit+1
+     do j=1,nder
+        string=dername(j)
+        k=10
+        call write_nonscalar_props(m_props,i,k,iblk,cml_av &
+             ,cml2,cml_norm,blk_av,blk_norm,der_filename(j),iunit,0,1 &
+             ,string)
+     enddo
+     ! mstar
+     i=jmstar
+     iunit=iunit+1
+     do j=1,nmstar
+        string=' '
+        k=(ntau-2*ntauskip)/imstar_tau_skip(j)
+        call write_nonscalar_props(m_props,i,k,iblk,cml_av &
+             ,cml2,cml_norm,blk_av,blk_norm,mstar_filename(j),iunit,0,0 &
+             ,string)
+     enddo
+     ! cmass z
+     i=jcmass_z
+     iunit=iunit+1
+     do j=1,ncmass
+        string=typename(j)
+        k=2*ndim
+        call write_nonscalar_props(m_props,i,k,iblk,cml_av &
+             ,cml2,cml_norm,blk_av,blk_norm,cmass_z_filename(j),iunit,1 &
+             ,0,string)
+     enddo
+     ! cmass diffusion
+     i=jcmass_d
+     iunit=iunit+1
+     do j=1,ncmass
+        string=' '
+        kk=0
+        do k=1,ncm_ntauskip
+           kk=kk+(ntau-2*cm_ntauskip(k,j))/icmass_tau_skip(j)
+        enddo
+        call write_nonscalar_props(m_props,i,kk,iblk,cml_av &
+             ,cml2,cml_norm,blk_av,blk_norm,cmass_filename(j),iunit,0,0 &
+             ,string)
+     enddo
+     ! excite
+     i=jexcite
+     iunit=iunit+1
+     if(alg.eq.'exc')then
+        string=' '
+        k=n_props_exc
+        call write_nonscalar_props(m_props,i,k,iblk,cml_av &
+             ,cml2,cml_norm,blk_av,blk_norm,excite_filename,iunit,1,0 &
+             ,string)
+     endif
+     ! itc
+     i=jitc
+     iunit=iunit+1
+     do j=1,nitc
+        string=' '
+        k=itc_prop_count(j)*(ntau-2*ntauskip)/itc_tau_skip(j)
+        call write_nonscalar_props(m_props,i,k,iblk,cml_av &
+             ,cml2,cml_norm,blk_av,blk_norm,itc_filename(j),iunit,0,0 &
+             ,string)
+     enddo
+     !           endif
+     !$omp end single copyprivate(etrial,cml_av,cml2,cml_norm)
 
-        return
-      end subroutine averages
+     !           if(who.eq.'dmc') &
+     !                call MPI_BCAST(etrial,1,MPI_REAL8,0,MPI_COMM_WORLD,jrc)
+     ! res
+     call restart(1,iblk,who)
+  endif
+
+  return
+end subroutine averages
 
 
 
-      subroutine restart(what,iblk,who)
-        use ewald, only : mytid,runid, cml_norm, n_props, cml_av, cml2, &
-             nproc, ntypes, x_file, restart_dir, ipfrst, iplst, x_old, ndim, &
-             ntau, jfirst, n_buffer, x_stack, nstack, getnext, mstack, ntheta, &
-             ith, jth, iblk0, nblk, etrial, jetot, mproc
-        use utils
-        use mpi
-        implicit none
-        integer what,iblk,i,j,idim,ip,it,iunit,seed(8),seed_tot(8*mproc)
-        character(6)::sfix
-        character(3)::who
-        save
-        !      if(mytid.eq.0) &
+subroutine restart(what,iblk,who)
+  use ewald, only : mytid,runid, cml_norm, n_props, cml_av, cml2, &
+       nproc, ntypes, x_file, restart_dir, ipfrst, iplst, x_old, ndim, &
+       ntau, jfirst, n_buffer, x_stack, nstack, getnext, mstack, ntheta, &
+       ith, jth, iblk0, nblk, etrial, jetot, mproc
+  use utils
+  use mpi
+  implicit none
+  integer what,iblk,i,j,idim,ip,it,iunit,seed(8),seed_tot(8*mproc)
+  character(6)::sfix
+  character(3)::who
+  save
+  !      if(mytid.eq.0) &
 
-        ! -- need to think about this --
+  ! -- need to think about this --
 
-        ! scrive
-        print *,'restart ',what
+  ! scrive
+  print *,'restart ',what
 
-        if(what.eq.1)then
-           call savern(seed)
-           call savern2(seed(5))
+  if(what.eq.1)then
+     call savern(seed)
+     call savern2(seed(5))
 
-           !$omp single       
-           open(8,file=runid(1:index(runid,' ')-1)//'.res',status='unknown')
-           call MPI_GATHER(seed,8,MPI_INTEGER,seed_tot,8,MPI_INTEGER &
-                ,0,MPI_COMM_WORLD,j)
-           !if(mytid.eq.0)then
-           write(8,*)iblk,' ',who
-           write(8,*)cml_norm
-           do i=1,n_props
-              write(8,*)cml_av(i),cml2(i)
+     !$omp single       
+     open(8,file=runid(1:index(runid,' ')-1)//'.res',status='unknown')
+     call MPI_GATHER(seed,8,MPI_INTEGER,seed_tot,8,MPI_INTEGER &
+          ,0,MPI_COMM_WORLD,j)
+     !if(mytid.eq.0)then
+     write(8,*)iblk,' ',who
+     write(8,*)cml_norm
+     do i=1,n_props
+        write(8,*)cml_av(i),cml2(i)
+     enddo
+     do i=1,nproc
+        write(8,*)(seed_tot(j),j=8*(i-1)+1,8*(i-1)+8)
+     enddo
+     !endif   ! if mytid.eq.0
+     close(8)
+     !$omp end single copyprivate(seed_tot)
+
+     ! check if we need seed_tot
+     ! configurazioni
+
+     write(sfix,'(i0)') mytid
+     do it=1,ntypes
+        i=index(x_file(it),' ')-1
+        iunit=30+it-1
+        open(iunit,file=trim(restart_dir)//x_file(it)(1:i)//'.res.'//sfix,status='unknown')
+     enddo
+     ! x_old per il vmc
+     if(who.eq.'vmc')then
+        do it=1,ntypes
+           iunit=30+it-1
+           do ip=ipfrst(it),iplst(it)
+              write(iunit,*)(x_old(idim,ip),idim=1,ndim)
            enddo
-           do i=1,nproc
-              write(8,*)(seed_tot(j),j=8*(i-1)+1,8*(i-1)+8)
-           enddo
-           !endif   ! if mytid.eq.0
-           close(8)
-           !$omp end single copyprivate(seed_tot)
-
-           ! configurazioni
-
-           write(sfix,'(i0)') mytid
-           do it=1,ntypes
-              i=index(x_file(it),' ')-1
-              iunit=30+it-1
-              open(iunit,file=trim(restart_dir)//x_file(it)(1:i)//'.res.'//sfix,status='unknown')
-           enddo
-           ! x_old per il vmc
-           if(who.eq.'vmc')then
-              do it=1,ntypes
-                 iunit=30+it-1
-                 do ip=ipfrst(it),iplst(it)
-                    write(iunit,*)(x_old(idim,ip),idim=1,ndim)
-                 enddo
+        enddo
+        ! x_stack da jfirst a jlast per rmc
+     elseif(who.eq.'rmc')then
+        do it=1,ntypes
+           iunit=30+it-1
+           do i=1,ntau
+              j=mod(jfirst-1+i-1,n_buffer)+1
+              do ip=ipfrst(it),iplst(it)
+                 write(iunit,*)(x_stack(idim,ip,j),idim=1,ndim)
               enddo
-              ! x_stack da jfirst a jlast per rmc
-           elseif(who.eq.'rmc')then
-              do it=1,ntypes
-                 iunit=30+it-1
-                 do i=1,ntau
-                    j=mod(jfirst-1+i-1,n_buffer)+1
-                    do ip=ipfrst(it),iplst(it)
-                       write(iunit,*)(x_stack(idim,ip,j),idim=1,ndim)
-                    enddo
-                 enddo
+           enddo
+        enddo
+        ! x_stack da getnext a getnext+nstack-1 per dmc
+     elseif(who.eq.'dmc')then
+        do it=1,ntypes
+           iunit=30+it-1
+           do i=1,nstack
+              j=mod(getnext-1+i-1,mstack)+1
+              do ip=ipfrst(it),iplst(it)
+                 write(iunit,*)(x_stack(idim,ip,j),idim=1,ndim)
               enddo
-              ! x_stack da getnext a getnext+nstack-1 per dmc
-           elseif(who.eq.'dmc')then
-              do it=1,ntypes
-                 iunit=30+it-1
-                 do i=1,nstack
-                    j=mod(getnext-1+i-1,mstack)+1
-                    do ip=ipfrst(it),iplst(it)
-                       write(iunit,*)(x_stack(idim,ip,j),idim=1,ndim)
-                    enddo
-                 enddo
-              enddo
-           endif
-           ! twist average       
-           if(ntheta.ne.0)write(8,*) ith,jth 
-           ! close
-           do it=1,ntypes
-              iunit=30+it-1
-              close(iunit)
            enddo
+        enddo
+     endif
+     ! twist average   
+     !$omp single    
+     if(ntheta.ne.0)write(8,*) ith,jth
+     !$omp end single 
+     ! close
+     do it=1,ntypes
+        iunit=30+it-1
+        close(iunit)
+     enddo
 
-           ! legge
-        elseif(what.eq.0)then
+     ! legge
+  elseif(what.eq.0)then
 
-           !$omp single
-           open(8,file=runid(1:index(runid,' ')-1)//'.res',status='old')
-           !if(mytid.eq.0)then
-           write(*,*)'restart ',who
-           read(8,*)iblk0
-           iblk0=mod(iblk0,nblk)+1
-           read(8,*)cml_norm
-           do i=1,n_props
-              read(8,*)cml_av(i),cml2(i)
-           enddo
-           do i=1,nproc
-              read(8,*)(seed_tot(j),j=8*(i-1)+1,8*(i-1)+8) ! why doesnt this fail for nproc>8*16 ?
-           enddo
-           if(ntheta.ne.0)read(8,*) ith,jth
-           !endif
-           ! check ith,jth
-           etrial=cml_av(jetot)/cml_norm
-           close(8)
-           ! need to replace this line
-           call MPI_SCATTER(seed_tot,8,MPI_INTEGER,seed,8,MPI_INTEGER &
-                ,0,MPI_COMM_WORLD,j)
-           !$omp end single copyprivate(iblk0,seed,ith,jth,etrial) 
+     !$omp single
+     open(8,file=runid(1:index(runid,' ')-1)//'.res',status='old')
+     !if(mytid.eq.0)then
+     write(*,*)'restart ',who
+     read(8,*)iblk0
+     iblk0=mod(iblk0,nblk)+1
+     read(8,*)cml_norm
+     do i=1,n_props
+        read(8,*)cml_av(i),cml2(i)
+     enddo
+     do i=1,nproc
+        read(8,*)(seed_tot(j),j=8*(i-1)+1,8*(i-1)+8) ! why doesnt this fail for nproc>8*16 ?
+     enddo
+     if(ntheta.ne.0)read(8,*) ith,jth
+     !endif
+     ! check ith,jth
+     etrial=cml_av(jetot)/cml_norm
+     close(8)
+     ! need to replace this line
+     call MPI_SCATTER(seed_tot,8,MPI_INTEGER,seed,8,MPI_INTEGER &
+          ,0,MPI_COMM_WORLD,j)
+     !$omp end single copyprivate(iblk0,cml_norm,cml_av,cml2,seed_tot,ith,jth,etrial) 
 
-           !call MPI_BCAST(etrial,1,MPI_REAL8  ,0,MPI_COMM_WORLD,j)
-           !call MPI_BCAST(iblk0 ,1,MPI_INTEGER,0,MPI_COMM_WORLD,j)
-           !call MPI_BCAST(ith,1,MPI_INTEGER,0,MPI_COMM_WORLD,j)
-           !call MPI_BCAST(jth,1,MPI_INTEGER,0,MPI_COMM_WORLD,j)
-           !call MPI_SCATTER(seed_tot,8,MPI_INTEGER,seed,8,MPI_INTEGER &
-           !     ,0,MPI_COMM_WORLD,j)
-           call setrn(seed)
-           call setrn2(seed(5))
-        endif
+     !call MPI_BCAST(etrial,1,MPI_REAL8  ,0,MPI_COMM_WORLD,j)
+     !call MPI_BCAST(iblk0 ,1,MPI_INTEGER,0,MPI_COMM_WORLD,j)
+     !call MPI_BCAST(ith,1,MPI_INTEGER,0,MPI_COMM_WORLD,j)
+     !call MPI_BCAST(jth,1,MPI_INTEGER,0,MPI_COMM_WORLD,j)
+     !call MPI_SCATTER(seed_tot,8,MPI_INTEGER,seed,8,MPI_INTEGER &
+     !     ,0,MPI_COMM_WORLD,j)
+     call setrn(seed)
+     call setrn2(seed(5))
+  endif
 
-        return
-      end subroutine restart
+  return
+end subroutine restart
 
 
 
@@ -5391,8 +5320,8 @@ subroutine savern(iseed)
                  ddsorb(mdim,mdim,morbit,morbit,ntypes)
       complex*16 zv(mdim,morbit,morbit),zdet(2),zwrk(33*morbit)
       integer jkho,jkpa
-      common /scratch/qx,qa,qb,v,wrk,zv,zwrk
-      common /c_g_switch/jkho,jkpa
+      common /scratch/qx,qa,qb,v,wrk,zv,zwrk    ! commons are shared in openmp
+      common /c_g_switch/jkho,jkpa              !  
 
 ! indici
        npa(1,1)=np(1)
@@ -5505,6 +5434,7 @@ subroutine savern(iseed)
        enddo
       enddo
       w=-p_new(jltf)*2
+      if (mytid .ne. 0) print *,'mytid,w',mytid,w
       w=exp(w)
       if(w.le.0d0)then
        w=0.d0

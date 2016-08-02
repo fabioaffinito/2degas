@@ -44,13 +44,13 @@
     integer :: mitc,mitc_add
     parameter(mitc=1,mitc_add=2)
 !
-!  Check this - it gives problems
+!  Check this - it gives problems for nthreads>16
     integer :: mproc
     parameter(mproc=16)
 
 ! nome
     character(48) :: runid
-
+!$omp threadprivate(runid)
 
 ! vecchia configurazione
     real*8 :: x_old(mdim,mnp),g_old(mdim,mnp),h_old(mtypes)
@@ -82,7 +82,7 @@
     real*8 :: rhok(2*mnk,mtypes)
     integer :: irhok(mtypes),nrhok
     character(48) :: rhok_filename(mtypes)
-!$omp threadprivate(irhok,nrhok,rhok_filename)
+!$omp threadprivate(rhok,irhok,nrhok,rhok_filename)
 ! check nrhok, rhok_filename
 
 
@@ -90,6 +90,7 @@
     real*8 :: gofr(0:mgrid_gofr,mtpair)
     integer :: igofr(mtypes,mtypes),ngofr,ngrid_gofr_ratio
     character(48) :: gofr_filename(mtpair)
+!$omp threadprivate(ngofr,igofr,ngrid_gofr_ratio,gofr)
 
 
 ! distanze
@@ -200,7 +201,7 @@
     real*8 :: elocal,etrial,alpha,mult_ave,mult_ave2,mult_norm
     integer :: nconf,ntarget,max_nconf,min_nconf,mmult,nmult,mmstep
 !$omp  threadprivate (elocal,etrial,alpha,mult_ave,mult_ave2,mult_norm,&
-                      nconf,ntarget,max_nconf,min_nconf,mmult,nmult,mmstep) 
+!$omp                 nconf,ntarget,max_nconf,min_nconf,mmult,nmult,mmstep) 
 
 ! age; age_r per le mosse di reptation; nsg
     real*8 :: age,nage,mage,nage_r,mage_r,nsg
@@ -222,7 +223,7 @@
     character(48) :: der_filename(mder),inc_type(minc),inc_name(minc)
     character(7) :: dername(mder)
 !$omp threadprivate(inc,deradrift,iinc,ninc, nder,der_nskip,jinc, jder, derwpiu,dergstorto,dercyrus, &
-    der_filename, inc_type, inc_name, dername)
+!$omp   der_filename, inc_type, inc_name, dername)
 
 
 ! resample
@@ -309,6 +310,7 @@
 !  restart directory for restart files
 !  omp shared
    character(20) :: restart_dir
+!$omp threadprivate(restart_dir)
    
 
 

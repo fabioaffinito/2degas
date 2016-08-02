@@ -563,7 +563,7 @@ subroutine input
 !$omp end single copyprivate(v0, &
 !$omp el,eli,nk,knorm2,kvec,ktens, & 
 !$omp nrhok,irhok,pp_dist, ntypes,typename, np,hbs2m, x_file, &
-!$omp nk_ewald, ngrid, drt, ut, &   
+!$omp nk_ewald, ngrid, drt, drti, drti2,ut, &   
 !$omp iv2table, tail, iexp, v2value, iu2table, iu3table, ibckf, iubtable, ntheta )
 
 !-- end read n26.sy ----

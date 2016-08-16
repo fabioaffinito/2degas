@@ -429,7 +429,7 @@ subroutine read_conf
   use ewald, only : mytid, getnext, putnext, ntypes, x_file, res_string, restart_dir, &
        ntarget, jetot, jltf, ipfrst, iplst, x_new, ndim, p_new, p_old
   implicit none
-  integer it,iunit,i,j,ip,idim
+  integer it,iunit,i,j,ip,idim,ii
   real*8 p
   character(6):: sfix
 
@@ -454,6 +454,10 @@ subroutine read_conf
            read(iunit,*,end=1)(x_new(idim,ip),idim=1,ndim)
         enddo
      enddo
+     !call dump('read_conf')
+!     do ii=1,26
+!         print *,'read_conf',mytid,x_new(1,ii),x_new(2,ii)
+!     enddo
      ! compute properties
      call compute_properties(1)
      write(*,*)i,p_new(jetot),p_new(jltf)
@@ -580,8 +584,16 @@ end subroutine write_conf
       end
 
       subroutine compute_properties(ifdist)
-      use ewald
-      integer it,jt,ik,ik1,ik2,i,j,idim,ip,ifdist
+      use ewald, only : mytid,x_new,p_new,jetot,jpot,jkin,jefp,je2, &
+                        ntypes, jrhok, rhok, irhok, nk, igofr, jgofr, gofr, mgrid_gofr, &
+                        ncmass, jcmass_p, itcmass, ipfrst,iplst,np,ndim
+
+                        
+      implicit none
+      integer it,jt,ik,ik1,ik2,i,j,idim,ip,ifdist,ii
+!      do i=1,26
+!           print *,'compute_props',mytid,x_new(1,i),x_new(2,i)
+!      enddo
       if(ifdist.ne.0)call distances
       call trial_function
       call kinetic
@@ -898,13 +910,22 @@ end subroutine potential
       subroutine distances
         ! compute distances and set up quantities needed to use lookup tables
         ! (here there is only the distance from the origin)
-        use ewald
+        use ewald, only: mytid, x_new,ndim, update_two_body, ntypes, pp_dist, ipfrst,iplst, &
+                         pp_r,pp_rvec,el,eli,pp_byr,pp_ind, drt, drti, &
+                         pp_rem, nstypes, isfrst, islst,iinc, mgrid, mgrid_gofr, &
+                         n_dist,n_r, n_rvec, sites, n_rvec, n_ind, n_rem, n_byr,&
+                         ps_rvec, ps_r, ps_ind, ps_rem, ps_byr, ps_dist, &
+                         rhok, irhok, nrhok, nk,  kvec, ngofr, gofr, igofr, ngrid_gofr_ratio
+                         
         use utils
         implicit none
         integer idim,ip,jp,it,jt,ijcount,i,ik,ik2,ik1
         real*8 kr
-        save
+        !save  ! why ?
         ! distance between pairs
+        !do i=1,26
+        !   print *,'distance',mytid,x_new(1,i),x_new(2,i)
+        !enddo
         if(update_two_body.ne.0)then
            ijcount=0
            do it=1,ntypes
@@ -912,13 +933,13 @@ end subroutine potential
                  do ip=ipfrst(it),iplst(it)
                     do jp=ip+1,iplst(it)
                        ijcount=ijcount+1
-                       pp_r(ijcount)=0.d0                  
-                       do idim=1,ndim
+                       pp_r(ijcount)=0.d0                
+                       do idim=1,ndim                          
                           pp_rvec(idim,ijcount)=x_new(idim,ip)-x_new(idim,jp)
                           pp_rvec(idim,ijcount)=pp_rvec(idim,ijcount) &
                                -el(idim)*nint(eli(idim)*pp_rvec(idim,ijcount))
                           pp_r(ijcount)=pp_r(ijcount)+pp_rvec(idim,ijcount)**2
-                       enddo
+                       enddo                       
                        pp_r(ijcount)=sqrt(pp_r(ijcount))
                        pp_ind(ijcount)=int(pp_r(ijcount)*drti)
                        pp_rem(ijcount)=pp_r(ijcount)-pp_ind(ijcount)*drt
@@ -1241,7 +1262,7 @@ subroutine restart(what,iblk,who)
   ! -- need to think about this --
 
   ! scrive
-  print *,'restart ',what
+  !print *,'restart ',what
 
   if(what.eq.1)then
      call savern(seed)

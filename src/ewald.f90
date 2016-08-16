@@ -62,7 +62,6 @@
     real*8 :: p_new(m_props),s_new
 !$omp threadprivate(x_new,g_new,h_new,p_new,s_new)
 
-
 ! medie
     real*8 :: cml_av(m_props),cml2(m_props),cml_norm
     integer :: jetot,jltf,jacc,jpot(0:mtypes),jkin(0:mtypes),je2,jgg &

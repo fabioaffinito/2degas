@@ -53,7 +53,7 @@ subroutine input
   !  read restart file directory (if present)
   !      if (mytid.eq.0) then         
 
-  restart_dir='.'
+  restart_dir=''
   res_dirfile=trim(runid)//'.dir'
   inquire(file=res_dirfile,exist=there)
   if (there) then 
@@ -64,7 +64,7 @@ subroutine input
   write(*,*) 'Using restart directory: ',trim(restart_dir)
   !      endif
   !      call mpi_bcast(restart_dir,len(restart_dir), MPI_CHARACTER,0,MPI_COMM_WORLD,jrc)
-  restart_dir=trim(restart_dir)//'/' 
+   if (restart_dir .ne. '') restart_dir=trim(restart_dir)//'/' 
 
 !$OMP end single copyprivate(seed,restart_dir,runid)
 
@@ -563,9 +563,10 @@ subroutine input
 !$omp end single copyprivate(v0, &
 !$omp el,eli,nk,knorm2,kvec,ktens, & 
 !$omp nrhok,irhok,pp_dist, ntypes,typename, np,hbs2m, x_file, &
-!$omp nk_ewald, ngrid, drt, drti, drti2,ut, &   
+!$omp ngrid, drt, drti, drti2,ut, &   
 !$omp iv2table, tail, iexp, v2value, iu2table, iu3table, ibckf, iubtable, ntheta )
 
+!call dump
 !-- end read n26.sy ----
 
 

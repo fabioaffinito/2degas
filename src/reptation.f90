@@ -47,7 +47,7 @@ subroutine sonaseppia
 
 
   do k=1,nwords
-     word(:)=wordlist(k,:) 
+     word(:)=wordlist(k,:)
      ! restart
      if(word(1).eq.'restart')then
         res_string='.res.'       ! dice a read_conf di leggere .res.
@@ -1256,13 +1256,14 @@ subroutine restart(what,iblk,who)
   integer what,iblk,i,j,idim,ip,it,iunit,seed(8),seed_tot(8*mproc)
   character(6)::sfix
   character(3)::who
-  save
+  logical :: ex
+  !save   ! this needs to be checked for omp
   !      if(mytid.eq.0) &
 
   ! -- need to think about this --
 
   ! scrive
-  !print *,'restart ',what
+  print *,'restart ',what
 
   if(what.eq.1)then
      call savern(seed)
@@ -1288,10 +1289,12 @@ subroutine restart(what,iblk,who)
      ! check if we need seed_tot
      ! configurazioni
 
+     !  The omp critical is needed here but should consider rewriting this section
+     !$omp critical (myrestart)
      write(sfix,'(i0)') mytid
      do it=1,ntypes
         i=index(x_file(it),' ')-1
-        iunit=30+it-1
+        iunit=30+it-1        
         open(iunit,file=trim(restart_dir)//x_file(it)(1:i)//'.res.'//sfix,status='unknown')
      enddo
      ! x_old per il vmc
@@ -1326,14 +1329,17 @@ subroutine restart(what,iblk,who)
         enddo
      endif
      ! twist average   
-     !$omp single    
-     if(ntheta.ne.0)write(8,*) ith,jth
-     !$omp end single 
+
      ! close
      do it=1,ntypes
         iunit=30+it-1
         close(iunit)
      enddo
+     !$omp end critical (myrestart)
+
+     !$omp single    
+     if(ntheta.ne.0)write(8,*) ith,jth
+     !$omp end single 
 
      ! legge
   elseif(what.eq.0)then
@@ -4926,7 +4932,8 @@ subroutine savern(iseed)
       real*8 gv(mdim,mnk),gvnorm2(mnk),th_stp(mdim),theta(mdim),aux,del
       common/scratch/gv,gvnorm2
       external r
- 
+      
+      
       if(res_string.ne.'.')then
        if(iblk0.ne.1)then
         i0=ith

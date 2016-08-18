@@ -155,7 +155,7 @@
     integer :: iblk0,nblk,nstp,nskip,ntau,ntauskip,mdelta &
     ,iex,itype
     character(3) :: alg
-
+!$omp threadprivate(delta,tailcut,iblk0,nblk,nstp,nskip,ntau,ntauskip,mdelta,iex,itype,alg)
 
 ! lati della cella di simulazione e loro inversi
     real*8 :: el(mdim),eli(mdim)
@@ -254,12 +254,14 @@
     integer :: imstar(mtypes),imstar_tau_skip(mtypes),nmstar
     character(80) :: mstar_record(mtypes)
     character(50) :: mstar_filename(mtypes)
+    !$omp threadprivate(nmstar)
 
 ! cmass
     integer :: itcmass(mtypes),icmass_tau_skip(mtypes),ncmass &
     ,cm_ntauskip(5,mtypes),ncm_ntauskip
     character(80) :: cmass_record(mtypes)
     character(50) :: cmass_filename(mtypes),cmass_z_filename(mtypes)
+    !$omp threadprivate(ncmass)
 
 ! itc
     integer :: nitc,itc_tau_skip(mitc)
@@ -269,7 +271,7 @@
     integer :: jtc_prop_add(mitc),jtc_prop_start(mitc_add,mitc)
     character(80) :: itc_record(mitc)
     character(50) :: itc_filename(mitc)
-
+!$omp threadprivate(nitc)
 
 ! ewald
     integer :: nk_ewald(mnt)

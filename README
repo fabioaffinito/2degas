@@ -22,5 +22,6 @@ https://software.intel.com/en-us/forums/intel-fortran-compiler-for-linux-and-mac
 
 6. REstart from second thread is wrong. Look at line 458. Properties are wrong
 7. Restart files should be written with OMP CRITICAL. Now crashes only after 10 steps.
-
+Note that this will slow the program down alot for many threads. Reconsider this bit.
+(MCDRAM of KNL?). Also perhaps omp_set_lock?
 	

@@ -224,6 +224,7 @@ subroutine vmc
      !      if(mytid.eq.0)call flush(6)
   enddo
   ! END MAIN LOOP
+  
 
   if(nstack.eq.0)then
      call putconf(1)
@@ -433,7 +434,8 @@ subroutine read_conf
   real*8 p
   character(6):: sfix
 
-  write(sfix,'(i0)') mytid
+  
+   write(sfix,'(i0)') mytid
   ! initialize counters
   getnext=1
   putnext=1
@@ -454,10 +456,7 @@ subroutine read_conf
            read(iunit,*,end=1)(x_new(idim,ip),idim=1,ndim)
         enddo
      enddo
-     !call dump('read_conf')
-!     do ii=1,26
-!         print *,'read_conf',mytid,x_new(1,ii),x_new(2,ii)
-!     enddo
+
      ! compute properties
      call compute_properties(1)
      write(*,*)i,p_new(jetot),p_new(jltf)
@@ -484,6 +483,7 @@ subroutine write_conf
   integer it,i,ip,idim,iunit
   character(6):: sfix
 
+  !$omp critical (mywriteconf)
   write(sfix,'(i0)') mytid
   do it=1,ntypes
      i=index(x_file(it),' ')-1
@@ -503,6 +503,7 @@ subroutine write_conf
      iunit=30+it-1
      close(iunit)
   enddo
+  !$omp end critical (mywriteconf)
   return
 end subroutine write_conf
 
@@ -1382,39 +1383,39 @@ end subroutine restart
 
 
 
-      subroutine write_nonscalar_props(m,i,n,iblk,cml_av,cml2,cml_norm &
-                                      ,blk_av,blk_norm,filename,iunit &
-                                      ,ifc,istdout,string)
-! write on file filename n non-scalar props starting from the i-th
-      integer j,m,i,n,iblk,iunit,istdout,ifc
-      real*8 cml_norm,blk_norm,blk_av(m),cml_av(m),cml2(m),err
-      character*48 filename
-      character*7 string
-      open(iunit,file=filename,status='unknown')
-      do j=1,n
-       if(iblk.gt.1)then
+subroutine write_nonscalar_props(m,i,n,iblk,cml_av,cml2,cml_norm &
+     ,blk_av,blk_norm,filename,iunit &
+     ,ifc,istdout,string)
+  ! write on file filename n non-scalar props starting from the i-th
+  integer j,m,i,n,iblk,iunit,istdout,ifc
+  real*8 cml_norm,blk_norm,blk_av(m),cml_av(m),cml2(m),err
+  character*48 filename
+  character*7 string
+  open(iunit,file=filename,status='unknown')
+  do j=1,n
+     if(iblk.gt.1)then
         err=sqrt(abs((cml2(i)/cml_norm-(cml_av(i)/cml_norm)**2) &
-               /(iblk-1)))
-       else
+             /(iblk-1)))
+     else
         err=0.d0
-       endif
-       write(iunit,'(2e19.11,e9.2,e10.3,1x,a7,i5)') &
-             blk_av(i)/blk_norm,cml_av(i)/cml_norm,err,blk_norm &
-             ,' merea ',j
-       if(istdout.ne.0)then
+     endif
+     write(iunit,'(2e19.11,e9.2,e10.3,1x,a7,i5)') &
+          blk_av(i)/blk_norm,cml_av(i)/cml_norm,err,blk_norm &
+          ,' merea ',j
+     if(istdout.ne.0)then
         write(6,'(2e19.11,e9.2,e10.3,1x,a7,i2)') &
              blk_av(i)/blk_norm,cml_av(i)/cml_norm,err,blk_norm &
              ,string,j
-       endif
-       i=i+1
-      enddo
-      if(ifc.eq.0) then
-       close(iunit)
-!     else
-!      call flush(iunit)
-      endif
-      return
-      end
+     endif
+     i=i+1
+  enddo
+  if(ifc.eq.0) then
+     close(iunit)
+     !     else
+     !      call flush(iunit)
+  endif
+  return
+end subroutine write_nonscalar_props
 
       subroutine move(p)
       use ewald
@@ -4924,89 +4925,88 @@ subroutine savern(iseed)
       GO TO 4                                                           
    12 INDEX (1) = I3                                                    
       RETURN                                                            
-      END 
+END  subroutine sorttf
       
-      subroutine tabc(r)
-      use ewald
-      integer igvec(mnk),k,idim,it,ip,i0,j0,nst,nbl,jdim,jt
-      real*8 gv(mdim,mnk),gvnorm2(mnk),th_stp(mdim),theta(mdim),aux,del
-      common/scratch/gv,gvnorm2
-      external r
-      
-      
-      if(res_string.ne.'.')then
-       if(iblk0.ne.1)then
+subroutine tabc(r)
+  use ewald
+  integer igvec(mnk),k,idim,it,ip,i0,j0,nst,nbl,jdim,jt
+  real*8 gv(mdim,mnk),gvnorm2(mnk),th_stp(mdim),theta(mdim),aux,del
+  !common/scratch/gv,gvnorm2
+  external r
+  
+  if(res_string.ne.'.')then
+     if(iblk0.ne.1)then
         i0=ith
         j0=jth
-       else
+     else
         i0=ith+int(jth/ntheta)
         j0=mod(jth,ntheta)+1
-       endif
-      else
-       i0=1
-       j0=1 
-      endif   
-      do idim=1,ndim
-       th_stp(idim)=2.d0*pi*eli(idim)/ntheta
-      enddo 
-      do ith=i0,ntheta          !loop over twists on x
-       theta(1)=ith*th_stp(1)
-       do jth=j0,ntheta         !loop over twists on y
+     endif
+  else
+     i0=1
+     j0=1 
+  endif
+  do idim=1,ndim
+     th_stp(idim)=2.d0*pi*eli(idim)/ntheta
+  enddo
+  do ith=i0,ntheta          !loop over twists on x
+     theta(1)=ith*th_stp(1)
+     do jth=j0,ntheta         !loop over twists on y
         theta(2)=jth*th_stp(2)
-! generate 2*nk+1 shifted r.l.vectors
+        ! generate 2*nk+1 shifted r.l.vectors
         gnorm2(1)=0.d0
         do idim=1,ndim
-         gvec(idim,1)=theta(idim)
-         gnorm2(1)=gnorm2(1)+gvec(idim,1)**2
-        enddo  
+           gvec(idim,1)=theta(idim)
+           gnorm2(1)=gnorm2(1)+gvec(idim,1)**2
+        enddo
         igvec(1)=1
         do k=nk,1,-1               
-         gnorm2(2*k+1)=0.d0
-         gnorm2(2*k)=0.d0
-         do idim=1,ndim
-          gvec(idim,2*k+1)=-kvec(idim,k)+theta(idim) 
-          gvec(idim,2*k)=kvec(idim,k)+theta(idim) 
-          gnorm2(2*k+1)=gnorm2(2*k+1)+gvec(idim,2*k+1)**2
-          gnorm2(2*k)=gnorm2(2*k)+gvec(idim,2*k)**2
-         enddo
-         igvec(2*k)=2*k
-         igvec(2*k+1)=2*k+1
-        enddo       
+           gnorm2(2*k+1)=0.d0
+           gnorm2(2*k)=0.d0
+           do idim=1,ndim
+              gvec(idim,2*k+1)=-kvec(idim,k)+theta(idim) 
+              gvec(idim,2*k)=kvec(idim,k)+theta(idim) 
+              gnorm2(2*k+1)=gnorm2(2*k+1)+gvec(idim,2*k+1)**2
+              gnorm2(2*k)=gnorm2(2*k)+gvec(idim,2*k)**2
+           enddo
+           igvec(2*k)=2*k
+           igvec(2*k+1)=2*k+1
+        enddo
         call SORTTF (2*nk+1,gnorm2,igvec)           
         do k=1,2*nk+1
-         do idim=1,ndim 
-          gv(idim,k)=gvec(idim,igvec(k))
-         enddo
-         gvnorm2(k)=gnorm2(igvec(k))
+           do idim=1,ndim 
+              gv(idim,k)=gvec(idim,igvec(k))
+           enddo
+           gvnorm2(k)=gnorm2(igvec(k))
         enddo
         do k=1,2*nk+1
-         do idim=1,ndim
-          gvec(idim,k)=gv(idim,k)
-          do jdim=1,ndim  
-           gtens(idim,jdim,k)=gv(idim,k)*gv(jdim,k)  
-          enddo  
-         enddo 
-         gnorm2(k)=gvnorm2(k)
-        enddo  
+           do idim=1,ndim
+              gvec(idim,k)=gv(idim,k)
+              do jdim=1,ndim  
+                 gtens(idim,jdim,k)=gv(idim,k)*gv(jdim,k)  
+              enddo
+           enddo
+           gnorm2(k)=gvnorm2(k)
+        enddo
         if(res_string.ne.'.'.and.iblk0.ne.1)goto 15 
         if(alg.eq.'dmc')then
-         nbl=nblk
-         nst=nstp  
-         del=delta 
-         nblk=1
-         nstp=min(100,nst)
-         delta=del/4
-         call r
-         nstp=nst
-         nblk=nbl
-         delta=del
-        endif   
+           nbl=nblk
+           nst=nstp  
+           del=delta 
+           nblk=1
+           nstp=min(100,nst)
+           delta=del/4
+           call r
+           nstp=nst
+           nblk=nbl
+           delta=del
+        endif
 15      call r 
-       enddo
-       j0=1
-      enddo
-      return 
-      end
+     enddo
+     j0=1
+  enddo
+  return 
+end subroutine tabc
 
       subroutine excite_setup
       use ewald

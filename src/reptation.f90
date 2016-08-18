@@ -204,7 +204,9 @@ subroutine vmc
      nitc0=nitc
      nitc=0      
   endif
-  call read_conf
+  ! With an omp barrier here it works fine for 2 thds :-)
+  !$omp barrier
+  call read_conf 
   call getconf 
 
   ! MAIN LOOP 
@@ -434,12 +436,14 @@ subroutine read_conf
   real*8 p
   character(6):: sfix
 
-  
+  !$omp critical (myreadconf)
    write(sfix,'(i0)') mytid
   ! initialize counters
   getnext=1
   putnext=1
   ! open files
+  ! OMP  note probably shoudl re-write this routine
+
   do it=1,ntypes
      iunit=30+it-1
      i=index(x_file(it),' ')-1
@@ -472,6 +476,7 @@ subroutine read_conf
      iunit=30+it-1
      close(iunit)
   enddo
+  !$omp end critical (myreadconf)
   return
 end subroutine read_conf
 
@@ -1264,7 +1269,6 @@ subroutine restart(what,iblk,who)
   ! -- need to think about this --
 
   ! scrive
-  print *,'restart ',what
 
   if(what.eq.1)then
      call savern(seed)
@@ -4931,7 +4935,8 @@ subroutine tabc(r)
   use ewald
   integer igvec(mnk),k,idim,it,ip,i0,j0,nst,nbl,jdim,jt
   real*8 gv(mdim,mnk),gvnorm2(mnk),th_stp(mdim),theta(mdim),aux,del
-  !common/scratch/gv,gvnorm2
+  common/scratch/gv,gvnorm2
+  !$omp threadprivate(/scratch/)
   external r
   
   if(res_string.ne.'.')then

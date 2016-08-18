@@ -9,6 +9,7 @@ call input
 call sonaseppia
 
 !$OMP end parallel
+write(*,*) 'Execution Finished'
 
 
 end program mockup

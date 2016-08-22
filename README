@@ -24,4 +24,6 @@ https://software.intel.com/en-us/forums/intel-fortran-compiler-for-linux-and-mac
 7. Restart files should be written with OMP CRITICAL. Now crashes only after 10 steps.
 Note that this will slow the program down alot for many threads. Reconsider this bit.
 (MCDRAM of KNL?). Also perhaps omp_set_lock?
+8. OMP Critical inserted in read_conf. still crashes. omp barrier inserted just before main loop. program now seems to work.
+9. Consider adding threadprivate for all SAVE variables
 	

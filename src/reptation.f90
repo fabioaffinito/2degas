@@ -1081,15 +1081,19 @@ subroutine averages(what,iblk,who,wate)
        jexcite, alg, n_props_exc, excite_filename, &
        jitc, nitc, itc_prop_count, itc_tau_skip, itc_filename, &
        etrial, p_old, jetot,n_scalar_props,name, jrhok, gofr_filename, jder, nder, &
-       dername, cm_ntauskip 
+       dername, cm_ntauskip, nproc 
   use utils
   use mpi
+  use stats
   implicit none 
   integer what,iblk,i,j,k,it,jt,jrc,kk,iunit
-  real*8 blk_av(m_props),blk_norm,tot_av(m_props),tot_norm,err,wate
+!  real*8 blk_av(m_props),blk_norm,tot_av(m_props),tot_norm,err,wate
+  real*8 blk_av(m_props), blk_norm, err,wate
   character*3 who
   character*7 string
   save blk_av,blk_norm
+  !$omp threadprivate(blk_av, blk_norm)
+
   if(what.eq.1)then
      ! reset cumulative averages if iblk=1
      if(iblk.eq.1)then
@@ -1114,10 +1118,42 @@ subroutine averages(what,iblk,who,wate)
      blk_norm=blk_norm+wate
   elseif(what.eq.3)then
      ! compute and write cumulative averages and estimated errors
-     call MPI_REDUCE(blk_av,tot_av,n_props,MPI_REAL8,MPI_SUM &
-          ,0,MPI_COMM_WORLD,j)
-     call MPI_REDUCE(blk_norm,tot_norm,1,MPI_REAL8,MPI_SUM &
-          ,0,MPI_COMM_WORLD,j)
+     
+     ! reduce for blk_av and blk_norm for OpenMp.
+     ! Is there a better way? 
+     ! Each thread fills its elements of the shared arrays and then reduce over threads (nproc) 
+     !(could use a parallel do here)
+
+     blk_norm_thds(mytid)=blk_norm
+     do i=1, n_props
+        blk_av_thds(i,mytid)=blk_av(i)
+     enddo
+
+   !set the shared reduction variables to 0
+   !$omp single
+     tot_norm=0.d0
+   !$omp end single
+   !$omp do private(i)
+     do i=1,n_props
+        tot_av(i)=0.d0
+     enddo
+   !$omp end do
+            
+   ! now reduce over number of threads (nproc)
+   !$omp do private (i,j) reduction(+:tot_norm,tot_av)
+     do i=0,nproc-1
+          tot_norm = tot_norm+blk_norm_thds(i)
+          do j=1, n_props
+            tot_av(j) = tot_av(j) + blk_av_thds(j,i)
+          enddo
+     enddo
+   !$omp end do
+
+!     call MPI_REDUCE(blk_av,tot_av,n_props,MPI_REAL8,MPI_SUM &
+!          ,0,MPI_COMM_WORLD,j)
+!     call MPI_REDUCE(blk_norm,tot_norm,1,MPI_REAL8,MPI_SUM &
+!          ,0,MPI_COMM_WORLD,j)
+
      !$omp single 
      !          if(mytid.eq.0)then
      blk_norm=tot_norm

@@ -7,10 +7,10 @@ include make.defs
 #F90 parallel version
 SRCDIR=src
 OBJDIR=obj
-F90_SRC =  mpif_mod.f90 mpif.f90 tools.f90 ewald.f90 \
+F90_SRC =  mpif_mod.f90 mpif.f90 tools.f90 ewald.f90 stats.f90 \
            utils.f90 input.f90 main.f90 two_body.f90 \
            reptation.f90 three_body.f90 oldblas.f90 algorithms.f90 dump.f90   
-OBJS =  mpif_mod.o mpif.o tools.o ewald.o \
+OBJS =  mpif_mod.o mpif.o tools.o ewald.o stats.o\
         utils.o  input.o main.o two_body.o \
         reptation.o three_body.o oldblas.o algorithms.o dump.o
 

@@ -43,3 +43,5 @@ ize rept90-omp.x
 RESULT: still doesnt work on *node169* for example
 
 12:  Solution: make threadprivate also variables such as zorb and those involved in the matrix inversion	
+13. STill need to implement mpi_gather in reptation.f90 line 1318 restart
+14.

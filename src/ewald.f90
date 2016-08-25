@@ -45,9 +45,12 @@
     integer :: mitc,mitc_add
     parameter(mitc=1,mitc_add=2)
 !
-!  Check this - it gives problems for nthreads>16
+!  Check this - it gives problems for nthreads>16 on DEEP
     integer :: mproc
     parameter(mproc=16)
+
+! This must be shared
+    integer :: seed_tot(8*mproc)
 
 ! nome
     character(48) :: runid

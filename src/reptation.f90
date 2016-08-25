@@ -23,8 +23,8 @@ subroutine sonaseppia
   !  use mpi
   implicit none
   integer idum,i,seed(4),j,jkho,jkpa
-  common /c_g_switch/jkho,jkpa
-  character*48 word(mword)
+  common /c_g_switch/jkho,jkpa 
+ character*48 word(mword)
   character*80 record
   external vmc,contour,dmc,testd
 
@@ -1294,11 +1294,13 @@ subroutine restart(what,iblk,who)
   use ewald, only : mytid,runid, cml_norm, n_props, cml_av, cml2, &
        nproc, ntypes, x_file, restart_dir, ipfrst, iplst, x_old, ndim, &
        ntau, jfirst, n_buffer, x_stack, nstack, getnext, mstack, ntheta, &
-       ith, jth, iblk0, nblk, etrial, jetot, mproc
+       ith, jth, iblk0, nblk, etrial, jetot, mproc, seed_tot
   use utils
   use mpi
   implicit none
-  integer what,iblk,i,j,idim,ip,it,iunit,seed(8),seed_tot(8*mproc)
+!  integer what,iblk,i,j,idim,ip,it,iunit,seed(8),seed_tot(8*mproc)
+  integer what,iblk,i,j,idim,ip,it,iunit,seed(8)
+
   character(6)::sfix
   character(3)::who
   logical :: ex
@@ -1313,11 +1315,17 @@ subroutine restart(what,iblk,who)
      call savern(seed)
      call savern2(seed(5))
 
+    ! Assuming seed_tot is shared
+    ! (probably could avoid the explicit barrier here with a do loop)
+     seed_tot(mytid*8+1:mytid*8+8)=seed(:)
+ 
+     !$omp barrier
      !$omp single       
      open(8,file=runid(1:index(runid,' ')-1)//'.res',status='unknown')
-     call MPI_GATHER(seed,8,MPI_INTEGER,seed_tot,8,MPI_INTEGER &
-          ,0,MPI_COMM_WORLD,j)
-     !if(mytid.eq.0)then
+ !    call MPI_GATHER(seed,8,MPI_INTEGER,seed_tot,8,MPI_INTEGER &
+ !         ,0,MPI_COMM_WORLD,j)
+
+    !if(mytid.eq.0)then
      write(8,*)iblk,' ',who
      write(8,*)cml_norm
      do i=1,n_props
@@ -1328,7 +1336,7 @@ subroutine restart(what,iblk,who)
      enddo
      !endif   ! if mytid.eq.0
      close(8)
-     !$omp end single copyprivate(seed_tot)
+     !$omp end single
 
      ! check if we need seed_tot
      ! configurazioni

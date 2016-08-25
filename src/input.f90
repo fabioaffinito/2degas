@@ -26,11 +26,12 @@ subroutine input
 !!$OMP parallel default(private) shared(nproc,runid,ndim,restart_dir)
   nproc=omp_get_num_threads()
   mytid=omp_get_thread_num()
-  if (mytid.eq.0 .and. nproc.gt.mproc) then
+
+!$OMP single 
+  if (nproc.gt.mproc) then
      write(*,*) 'Error: nthreads ',nproc, '(nproc) > ',mproc,' (mproc)'
      stop
   endif
-!$OMP single 
 
   !!      if(mytid.eq.0)then
 

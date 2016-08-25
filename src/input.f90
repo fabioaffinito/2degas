@@ -35,7 +35,7 @@ subroutine input
 
   !!      if(mytid.eq.0)then
 
-  write(6,*)'nthreads = ',nproc
+  write(6,*)'OpenMP nthreads = ',nproc
   open(2,file='runid',status='old')
   read(2,'(a)')runid
   close(2)

@@ -1,11 +1,11 @@
 # make defs for Galileo
-F90=mpifc
+F90=ifort
 BLAS_INTERNAL=
 #
 # other fpp flags include -DDEBUG
 #FPP=-fpp -DBLAS_INTERNAL -DDEBUG
 FPP=-fpp
-F90FLAGS= -O3 -g -mmic -openmp
+F90FLAGS= -O3 -g -mmic -qopenmp
 
 LDFLAGS=-mmic
 ifdef BLAS_INTERNAL

@@ -28,7 +28,8 @@
     integer :: mgrid_gofr,mstack,mfw,mword
     parameter(mdim= 2,mnp=166,mgrid= 901 ,mtypes=2,mns=166 ,mstypes=1)
     parameter(morbit=  42,mnk=196)
-    parameter(mstack=10000,mword=30,mgrid_gofr=101  )
+    !parameter(mstack=10000,mword=30,mgrid_gofr=101  )
+    parameter(mstack=3000,mword=30,mgrid_gofr=101  )
     integer :: m_props,m_props_in_stack
     integer :: mnt,mnkt,mpp,mtpair,mname,mps
     parameter(m_props= 9900,m_props_in_stack=900,mname=100)
@@ -167,6 +168,7 @@
     ,ddorb(mdim,mdim,morbit,morbit)
     complex*16 zorb(morbit,morbit),dzorb(mdim,morbit,morbit), &
     ddzorb(mdim,mdim,morbit,morbit)
+!$omp threadprivate(orb,dorb,ddorb,zorb,dzorb,ddzorb)
 
 
 ! rlv della cella di simulazione, loro modulo quadro e numero
@@ -194,6 +196,7 @@
 ! orbital-dependent backflow
     integer :: nshll,ishll(mnk)
     real*8 :: dx_bf2
+!$omp threadprivate (nshll,ishll,dx_bf2)
 
 
 ! branching

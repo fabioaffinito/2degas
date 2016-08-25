@@ -424,6 +424,7 @@ subroutine putconf(n)
      nstack=nstack+1
      nconf=nstack
   enddo
+!  print *,'nstack=',nstack,' putnext=',putnext
   return
 end subroutine putconf
 
@@ -1154,9 +1155,11 @@ subroutine averages(what,iblk,who,wate)
 !     call MPI_REDUCE(blk_norm,tot_norm,1,MPI_REAL8,MPI_SUM &
 !          ,0,MPI_COMM_WORLD,j)
 
+    
      !$omp single 
      !          if(mytid.eq.0)then
      blk_norm=tot_norm
+
      do i=1,n_props
         blk_av(i)=tot_av(i)
      enddo
@@ -5384,7 +5387,9 @@ end module slater_vars
 
       subroutine slater_excitations(w)
 ! symmetric (i.e. if xi=ri+etaij*rij then xj=rj+etaji*rji) backflow
+#ifndef BLAS_INTERNAL
       use tools
+#endif
       use ewald
       use slater_vars
       implicit none
@@ -5405,6 +5410,7 @@ end module slater_vars
       integer jkho,jkpa
  !     common /scratch/qx,qa,qb,v,wrk,zv,zwrk    ! commons are shared in openmp
       common /c_g_switch/jkho,jkpa              !  
+      !$omp threadprivate(/c_g_switch/)
 
 ! indici
        npa(1,1)=np(1)
@@ -5700,7 +5706,9 @@ end module slater_vars
 
 ! used in DEEP
       subroutine paho_orbitals(jt,zdet)
+#ifndef BLAS_INTERNAL
       use tools
+#endif
       use ewald
       use slater_vars
       implicit none

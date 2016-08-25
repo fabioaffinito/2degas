@@ -9,6 +9,8 @@ complex*16 :: zdtmnt
 ! must check this
 integer, parameter :: lwork=64
 
+!$omp threadprivate(dtmnt,zdtmnt)
+
 CONTAINS
 !
 ! gets inverse and determinant using lapack
@@ -68,7 +70,7 @@ implicit none
 ! arguments
 integer, intent(in) :: lda,n
 integer, intent(out) :: info
-complex*16, intent (INOUT) :: matrix(lda,1)
+complex*16, intent (INOUT) :: matrix(lda,*)
 complex*16, intent (OUT) :: zdtmnt
 
 complex*16 :: sgn

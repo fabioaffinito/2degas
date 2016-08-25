@@ -26,4 +26,20 @@ Note that this will slow the program down alot for many threads. Reconsider this
 (MCDRAM of KNL?). Also perhaps omp_set_lock?
 8. OMP Critical inserted in read_conf. still crashes. omp barrier inserted just before main loop. program now seems to work.
 9. Consider adding threadprivate for all SAVE variables
-	
+10. implemented reduce in averages routine
+11. Works *only on node168*. I think related to stack but cannot prove it. Try to reduce local,automatic variables.
+- reduce mstack from 10,000 -> 3000
+before change
+size rept90-omp.x
+   text    data     bss     dec     hex filename
+1777061   82296 279223472       281082829       10c0fbcd        rept90-omp.x
+
+after
+
+ize rept90-omp.x
+   text    data     bss     dec     hex filename
+1777061   82296 103103216       104962573       6419a0d rept90-omp.x
+
+RESULT: still doesnt work on *node169* for example
+
+12:  Solution: make threadprivate also variables such as zorb and those involved in the matrix inversion	

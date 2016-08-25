@@ -44,7 +44,7 @@
     integer :: mitc,mitc_add
     parameter(mitc=1,mitc_add=2)
     integer :: mproc
-    parameter(mproc=16)
+    parameter(mproc=256)
 
 ! nome
     character(48) :: runid

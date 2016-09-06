@@ -1,0 +1,23 @@
+#!/bin/bash
+#PBS -l select=1:ncpus=16:mem=20GB
+#PBS -l walltime=30:00
+#PBS -A cin_priorit
+
+cd $PBS_O_WORKDIR
+module load profile/advanced intel mkl
+export OMP_NUM_THREADS=8
+
+
+#export KMP_AFFINITY="verbose,compact"
+export MKL_DYNAMIC=false
+export OMP_NESTED=true
+export MKL_NUM_THREADS=2
+
+start_time=$(date +"%s")
+
+time ../rept90-omp.x > out.8.mkl2
+
+end_time=$(date +"%s")
+walltime=$(($end_time-$start_time))
+echo "walltime $walltime" >>out.8.mkl2
+

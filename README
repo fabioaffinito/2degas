@@ -44,4 +44,11 @@ RESULT: still doesnt work on *node169* for example
 
 12:  Solution: make threadprivate also variables such as zorb and those involved in the matrix inversion	
 13. STill need to implement mpi_gather in reptation.f90 line 1318 restart
-14.
+(git push -u origin omp)
+
+14. Experiment with mkl threads - see job.pbs for example. Also nested OpenMP. In three_body maybe able to parallelise loops within each walker.
+
+15. Vtune analysis at 16 threads indicate:
+- time is lost ("spin time") in the critical region for reading the task-local restart files
+- 12% of the total time is spent just initializing a variable to 0.0!
+

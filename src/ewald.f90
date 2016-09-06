@@ -47,7 +47,7 @@
 !
 !  Check this - it gives problems for nthreads>16 on DEEP
     integer :: mproc
-    parameter(mproc=16)
+    parameter(mproc=240)
 
 ! This must be shared
     integer :: seed_tot(8*mproc)

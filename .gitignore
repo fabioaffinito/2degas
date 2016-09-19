@@ -1,5 +1,8 @@
+# ignore these files and directories
 mockup/
 obj/
 *.mod
 *.x
 *.bak
+tmp/
+tests/

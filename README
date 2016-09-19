@@ -52,3 +52,4 @@ RESULT: still doesnt work on *node169* for example
 - time is lost ("spin time") in the critical region for reading the task-local restart files
 - 12% of the total time is spent just initializing a variable to 0.0!
 
+16. Still need to fix mpi_scatter in  restart

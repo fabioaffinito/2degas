@@ -157,6 +157,8 @@ subroutine sonaseppia
         call optimize(word(5),word(6))
      endif
   enddo
+ 
+
   ! save status of random number generator
   !$omp single
   call savern(seed)
@@ -188,6 +190,7 @@ end subroutine sigma
 subroutine vmc
   use ewald, only : ncmass, nmstar, nitc, iblk0, nblk, alg, nstp, nskip, &
        der_nskip, nstack, ntheta, res_string
+  use conf_access
   implicit none
   integer iblk,istp,nitc0,ncmass0,nmstar0
   real*8 p,uno,rannyu
@@ -206,7 +209,9 @@ subroutine vmc
   endif
   ! With an omp barrier here it works fine for 2 thds :-)
   !$omp barrier
-  call read_conf 
+
+!  call read_conf 
+  call read_conf_mem
   call getconf 
 
   ! MAIN LOOP 
@@ -231,7 +236,8 @@ subroutine vmc
   if(nstack.eq.0)then
      call putconf(1)
   endif
-  call write_conf
+!  call write_conf
+  call write_conf_mem
   if(nitc.ne.0)nitc=nitc0
   if(ncmass.ne.0)ncmass=ncmass0
   if(nmstar.ne.0)nmstar=nmstar0
@@ -1414,10 +1420,11 @@ subroutine restart(what,iblk,who)
      ! check ith,jth
      etrial=cml_av(jetot)/cml_norm
      close(8)
-     ! need to replace this line
-     call MPI_SCATTER(seed_tot,8,MPI_INTEGER,seed,8,MPI_INTEGER &
-          ,0,MPI_COMM_WORLD,j)
+     ! need to replace this line for OMP
+!    call MPI_SCATTER(seed_tot,8,MPI_INTEGER,seed,8,MPI_INTEGER &
+!          ,0,MPI_COMM_WORLD,j)
      !$omp end single copyprivate(iblk0,cml_norm,cml_av,cml2,seed_tot,ith,jth,etrial) 
+     seed(:)=seed_tot(mytid*8+1:mytid*8+8)
 
      !call MPI_BCAST(etrial,1,MPI_REAL8  ,0,MPI_COMM_WORLD,j)
      !call MPI_BCAST(iblk0 ,1,MPI_INTEGER,0,MPI_COMM_WORLD,j)
@@ -4980,6 +4987,8 @@ END  subroutine sorttf
       
 subroutine tabc(r)
   use ewald
+  use conf_access
+
   integer igvec(mnk),k,idim,it,ip,i0,j0,nst,nbl,jdim,jt
   real*8 gv(mdim,mnk),gvnorm2(mnk),th_stp(mdim),theta(mdim),aux,del
   common/scratch/gv,gvnorm2
@@ -5001,6 +5010,10 @@ subroutine tabc(r)
   do idim=1,ndim
      th_stp(idim)=2.d0*pi*eli(idim)/ntheta
   enddo
+
+ ! Read coordfinate files into memory (omp critical)
+  call read_conf_file
+
   do ith=i0,ntheta          !loop over twists on x
      theta(1)=ith*th_stp(1)
      do jth=j0,ntheta         !loop over twists on y
@@ -5057,8 +5070,12 @@ subroutine tabc(r)
      enddo
      j0=1
   enddo
+
+! save last configuration to file (omp critical)
+  call write_conf
   return 
 end subroutine tabc
+
 
       subroutine excite_setup
       use ewald

@@ -53,3 +53,4 @@ RESULT: still doesnt work on *node169* for example
 - 12% of the total time is spent just initializing a variable to 0.0!
 
 16. Still need to fix mpi_scatter in  restart
+17. mpi_scatter fixed. MPI version is still faster

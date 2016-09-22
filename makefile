@@ -8,6 +8,7 @@ include make.defs
 SRCDIR=src
 F90_SRC =  tools.f90 ewald.f90 main.f90 reptation.f90 three_body.f90
 F90_OBJS =  tools.o ewald.o main.o reptation.o three_body.o 
+OBJDIR=obj
 
 all : $(EXE) 
  
@@ -25,6 +26,9 @@ $(EXE):$(F90_OBJS)
 #
 
 clean:
-	-rm *.o *.mod $(EXE) 
+	-rm *.o *.mod 
+
+veryclean:
+	-rm *.o *.mod $(EXE)
 
 

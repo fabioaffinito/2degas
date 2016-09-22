@@ -1,19 +1,19 @@
 # make defs for Galileo
-F90=mpif90
+F90=mpifc
 BLAS_INTERNAL=
-EXE=rept90-mpi.x
 #
 # other fpp flags include -DDEBUG
 #FPP=-fpp -DBLAS_INTERNAL -DDEBUG
-F90FLAGS= -O3 -g
-#F90FLAGS= -O3 -g -qopt-report
+FPP=-fpp
+F90FLAGS= -O3 -g -mmic -fpp
 
+LDFLAGS=-mmic
 ifdef BLAS_INTERNAL
-   EXE=rept90-int.x
+   EXE=rept90-int-mic.x
    FPP:= $(FPP) -DBLAS_INTERNAL
-   LDFLAGS=
 else
+   EXE=rept90-mpi-mic.x
    F90_OBJS:= tools.o $(F90_OBJS)
-   LDFLAGS=-mkl
+   LDFLAGS:=-mkl -mmic
 endif
 

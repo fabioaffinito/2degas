@@ -28,7 +28,7 @@
     integer :: mgrid_gofr,mstack,mfw,mword
     parameter(mdim= 2,mnp=166,mgrid= 901 ,mtypes=2,mns=166 ,mstypes=1)
     parameter(morbit=  42,mnk=196)
-    parameter(mstack=10000,mword=30,mgrid_gofr=101  )
+    parameter(mstack=3000,mword=30,mgrid_gofr=101  )
     integer :: m_props,m_props_in_stack
     integer :: mnt,mnkt,mpp,mtpair,mname,mps
     parameter(m_props= 9900,m_props_in_stack=900,mname=100)

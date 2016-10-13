@@ -1325,7 +1325,7 @@ subroutine restart(what,iblk,who)
     ! (probably could avoid the explicit barrier here with a do loop)
      seed_tot(mytid*8+1:mytid*8+8)=seed(:)
  
-     !$omp barrier
+     !!$omp barrier
      !$omp single       
      open(8,file=runid(1:index(runid,' ')-1)//'.res',status='unknown')
  !    call MPI_GATHER(seed,8,MPI_INTEGER,seed_tot,8,MPI_INTEGER &

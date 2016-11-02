@@ -1326,6 +1326,7 @@ subroutine restart(what,iblk,who)
      seed_tot(mytid*8+1:mytid*8+8)=seed(:)
  
      !!$omp barrier
+
      !$omp single       
      open(8,file=runid(1:index(runid,' ')-1)//'.res',status='unknown')
  !    call MPI_GATHER(seed,8,MPI_INTEGER,seed_tot,8,MPI_INTEGER &
@@ -1348,17 +1349,19 @@ subroutine restart(what,iblk,who)
      ! configurazioni
 
      !  The omp critical is needed here but should consider rewriting this section
-     !$omp critical (myrestart)
+     !!$omp critical (myrestart)
      write(sfix,'(i0)') mytid
      do it=1,ntypes
         i=index(x_file(it),' ')-1
-        iunit=30+it-1        
+        !iunit=30+it-1
+        iunit=30+mytid*ntypes+it-1        
         open(iunit,file=trim(restart_dir)//x_file(it)(1:i)//'.res.'//sfix,status='unknown')
      enddo
      ! x_old per il vmc
      if(who.eq.'vmc')then
         do it=1,ntypes
-           iunit=30+it-1
+           !iunit=30+it-1
+           iunit=30+mytid*ntypes+it-1 
            do ip=ipfrst(it),iplst(it)
               write(iunit,*)(x_old(idim,ip),idim=1,ndim)
            enddo
@@ -1390,10 +1393,11 @@ subroutine restart(what,iblk,who)
 
      ! close
      do it=1,ntypes
-        iunit=30+it-1
+        !iunit=30+it-1
+        iunit=30+mytid*ntypes+it-1 
         close(iunit)
      enddo
-     !$omp end critical (myrestart)
+     !!$omp end critical (myrestart)
 
      !$omp single    
      if(ntheta.ne.0)write(8,*) ith,jth

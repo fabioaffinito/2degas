@@ -20,7 +20,9 @@
 !----
 subroutine sonaseppia
   use ewald
-  !  use mpi
+  use mpi
+  use mpi_info
+
   implicit none
   integer idum,i,seed(4),j,jkho,jkpa
   common /c_g_switch/jkho,jkpa 
@@ -33,18 +35,20 @@ subroutine sonaseppia
   character*48 wordlist(maxlist,mword)
   ! read input file
 
-  !$omp single
-  open(2,file=runid(1:index(runid,' ')-1)//'.in',status='old')
-  nwords=0
-  do
-     call readwords(2,mword,word,i,record)
-     nwords=nwords+1
-     if ((i.eq.1) .or. (word(1).eq.'end') .or. (nwords.eq.maxlist)) exit
-     wordlist(nwords,:)=word(:)
-  enddo
-  close(2)
-  !$omp end single copyprivate(wordlist,nwords)
-
+  if (rank.eq.0) then
+     !$omp single
+     open(2,file=runid(1:index(runid,' ')-1)//'.in',status='old')
+     nwords=0
+     do
+        call readwords(2,mword,word,i,record)
+        nwords=nwords+1
+        if ((i.eq.1) .or. (word(1).eq.'end') .or. (nwords.eq.maxlist)) exit
+        wordlist(nwords,:)=word(:)
+     enddo
+     close(2)
+     !$omp end single copyprivate(wordlist,nwords)
+  endif
+  call mpi_barrier(ierr)
 
   do k=1,nwords
      word(:)=wordlist(k,:)
@@ -160,12 +164,15 @@ subroutine sonaseppia
  
 
   ! save status of random number generator
-  !$omp single
-  call savern(seed)
-  open(3,file='seed',status='unknown')
-  write(3,*)seed
-  close(3)
-  !$omp end single
+  if (rank.eq.0) then
+     !$omp single
+     call savern(seed)
+     open(3,file='seed',status='unknown')
+     write(3,*)seed
+     close(3)
+     !$omp end single
+  endif
+
   return
 end subroutine sonaseppia
 
